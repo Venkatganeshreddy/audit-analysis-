@@ -1,0 +1,15 @@
+@import "tailwindcss";
+@import "./styles/theme.css";
+@import "./styles/globals.css";
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+#root {
+  min-height: 100vh;
+}
