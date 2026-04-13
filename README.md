@@ -1,16 +1,55 @@
-# React + Vite
+# NIAT Analytics
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + Vite dashboard with an Express BigQuery backend.
 
-Currently, two official plugins are available:
+## BigQuery Setup
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+The backend is configured to read from a single BigQuery source table:
 
-## React Compiler
+`kossip-helpers.content_bases_metabase.all_users_question_attempt_details_for_question_set_units`
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Use the server env file to configure the connection:
 
-## Expanding the ESLint configuration
+```bash
+cd server
+cp .env.example .env
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Expected server variables:
+
+- `BQ_PROJECT_ID`: Google Cloud project id
+- `BQ_TABLE`: BigQuery table in `dataset.table` or `project.dataset.table` format
+- `GOOGLE_APPLICATION_CREDENTIALS`: path to the local service account JSON file
+
+`server/service-account-key.json` is ignored by git and should stay local.
+
+## Run Locally
+
+Frontend:
+
+```bash
+npm ci
+npm run dev
+```
+
+Backend:
+
+```bash
+cd server
+npm ci
+npm run dev
+```
+
+Frontend default URL: `http://localhost:5173`
+
+Backend default URL: `http://localhost:3001`
+
+## Backend Behavior
+
+The configured BigQuery table stores question-attempt data, not semester-report rows. The backend now derives dashboard-friendly summary datasets from that raw table for the existing UI:
+
+- `POST /api/bigquery/semester`: aggregated question-set summary rows
+- `POST /api/bigquery/assessment`: aggregated assessment-style summary rows
+- `GET /api/bigquery/status`: connection check plus active project, dataset, and table
+- `POST /api/bigquery/query`: ad-hoc `SELECT` queries
+- `GET /api/bigquery/tables`: tables in the configured dataset

@@ -4,8 +4,9 @@ import cors from 'cors';
 import bigqueryRoutes from './routes/bigquery.js';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+const env = globalThis.process?.env ?? {};
+const PORT = env.PORT || 3001;
+const FRONTEND_URL = env.FRONTEND_URL || 'http://localhost:5173';
 
 // Configure CORS
 app.use(cors({

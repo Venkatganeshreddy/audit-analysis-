@@ -218,7 +218,7 @@ export default function UploadScreen({ onFilesLoad, onBigQueryLoad }) {
 
                 {/* BigQuery Info */}
                 {connected === true && connectionInfo && (
-                  <div className="mb-6 grid grid-cols-2 gap-3">
+                  <div className="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="bg-white/5 rounded-xl p-3 border border-white/10">
                       <p className="text-white/40 text-xs uppercase mb-1">Project</p>
                       <p className="text-white font-medium text-sm truncate">{connectionInfo.projectId}</p>
@@ -226,6 +226,10 @@ export default function UploadScreen({ onFilesLoad, onBigQueryLoad }) {
                     <div className="bg-white/5 rounded-xl p-3 border border-white/10">
                       <p className="text-white/40 text-xs uppercase mb-1">Dataset</p>
                       <p className="text-white font-medium text-sm truncate">{connectionInfo.dataset}</p>
+                    </div>
+                    <div className="bg-white/5 rounded-xl p-3 border border-white/10">
+                      <p className="text-white/40 text-xs uppercase mb-1">Table</p>
+                      <p className="text-white font-medium text-sm truncate">{connectionInfo.table || 'Configured via server'}</p>
                     </div>
                   </div>
                 )}

@@ -13,7 +13,12 @@ const router = Router();
 router.get('/status', async (req, res) => {
   try {
     const result = await testConnection();
-    res.json({ connected: true, projectId: result.projectId, dataset: result.dataset });
+    res.json({
+      connected: true,
+      projectId: result.projectId,
+      dataset: result.dataset,
+      table: result.table,
+    });
   } catch (err) {
     res.status(500).json({ connected: false, error: err.message });
   }
