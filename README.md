@@ -43,6 +43,33 @@ Frontend default URL: `http://localhost:5173`
 
 Backend default URL: `http://localhost:3001`
 
+## Streamlit Deploy
+
+This repo now includes a Streamlit entrypoint at `streamlit_app.py`.
+
+Files used for Streamlit deployment:
+
+- `streamlit_app.py`
+- `requirements.txt`
+- `.streamlit/secrets.toml.example`
+
+On Streamlit Cloud:
+
+1. Repository: `Venkatganeshreddy/audit-analysis-`
+2. Branch: `main`
+3. Main file path: `streamlit_app.py`
+4. Copy the keys from `.streamlit/secrets.toml.example` into your app secrets
+5. Paste your Google service account values inside the `[gcp_service_account]` block
+
+Local Streamlit run:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+streamlit run streamlit_app.py
+```
+
 ## Backend Behavior
 
 The backend derives dashboard-friendly summary datasets from multiple raw tables in the dataset:
