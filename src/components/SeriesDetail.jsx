@@ -12,18 +12,17 @@ export default function SeriesDetail({ seriesName, seriesData, onBack, onSelectU
   const data = seriesData[seriesName];
   if (!data) return null;
 
-  const pageBg = isDark ? 'bg-slate-900' : 'bg-gray-50';
-  const cardBg = isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100';
+  const pageBg = 'ui-shell';
+  const cardBg = isDark ? 'bg-slate-900/75 border-white/10' : 'bg-white/95 border-teal-100';
   const headingColor = isDark ? 'text-slate-200' : 'text-gray-700';
   const subColor = isDark ? 'text-slate-400' : 'text-gray-600';
-  const statBg = isDark ? 'bg-slate-700' : 'bg-gray-50';
-  const tableBg = isDark ? 'bg-slate-800' : 'bg-white';
-  const tableHeaderBg = isDark ? 'bg-slate-700' : 'bg-gray-50';
+  const tableBg = isDark ? 'bg-slate-900/85' : 'bg-white';
+  const tableHeaderBg = isDark ? 'bg-slate-800' : 'bg-gray-50';
   const tableHeaderText = isDark ? 'text-slate-400' : 'text-gray-500';
   const tableRowHover = isDark ? 'hover:bg-slate-700/50' : 'hover:bg-indigo-50/30';
   const tableRowDivide = isDark ? 'divide-slate-700' : 'divide-gray-50';
-  const tableCellSticky = isDark ? 'bg-slate-800 hover:bg-slate-700/50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]' : 'bg-white hover:bg-indigo-50/30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]';
-  const tableStickyHeader = isDark ? 'bg-slate-700 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]' : 'bg-gray-50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]';
+  const tableCellSticky = isDark ? 'bg-slate-900/95 hover:bg-slate-800/90 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]' : 'bg-white hover:bg-indigo-50/30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]';
+  const tableStickyHeader = isDark ? 'bg-slate-800 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]' : 'bg-gray-50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]';
   const backBtnCls = isDark
     ? 'text-slate-400 hover:text-slate-100 hover:bg-slate-700'
     : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100';
@@ -44,7 +43,7 @@ export default function SeriesDetail({ seriesName, seriesData, onBack, onSelectU
           </button>
 
           {/* Series Header */}
-          <div className={`bg-gradient-to-r ${series.bg} rounded-2xl p-5 sm:p-6 text-white mb-6 animate-fade-slide-up`}>
+          <div className={`hero-panel bg-gradient-to-r ${series.bg} rounded-2xl p-5 sm:p-6 text-white mb-6 animate-fade-slide-up`}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-white/80 text-sm">Series</p>
@@ -64,11 +63,11 @@ export default function SeriesDetail({ seriesName, seriesData, onBack, onSelectU
           {/* Stats grid */}
           <div className="grid grid-cols-12 gap-4 sm:gap-5 mb-6">
             {/* Series Averages */}
-            <div className={`col-span-12 md:col-span-3 rounded-xl p-5 shadow-sm border ${cardBg}`}>
+            <div className={`col-span-12 md:col-span-3 rounded-xl p-5 shadow-sm border backdrop-blur-sm ${cardBg}`}>
               <h3 className={`text-sm font-semibold mb-4 ${headingColor}`}>Series Averages</h3>
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <span className={subColor}>Avg Session Hours</span>
+                  <span className={subColor}>Average University Delivery (sessions)</span>
                   <span className={`text-2xl font-bold ${isDark ? 'text-slate-100' : 'text-gray-800'}`}>{data.avgSessions.toFixed(0)}</span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -83,7 +82,7 @@ export default function SeriesDetail({ seriesName, seriesData, onBack, onSelectU
             </div>
 
             {/* Avg Completion */}
-            <div className={`col-span-12 md:col-span-3 rounded-xl p-5 shadow-sm border ${cardBg}`}>
+            <div className={`col-span-12 md:col-span-3 rounded-xl p-5 shadow-sm border backdrop-blur-sm ${cardBg}`}>
               <h3 className={`text-sm font-semibold mb-4 ${headingColor}`}>Avg Completion</h3>
               <div className="grid grid-cols-2 gap-3">
                 <div className={`rounded-lg p-3 text-center ${isDark ? 'bg-blue-900/30' : 'bg-blue-50'}`}>
@@ -106,7 +105,7 @@ export default function SeriesDetail({ seriesName, seriesData, onBack, onSelectU
             </div>
 
             {/* Assessment */}
-            <div className={`col-span-12 md:col-span-3 rounded-xl p-5 shadow-sm border ${cardBg}`}>
+            <div className={`col-span-12 md:col-span-3 rounded-xl p-5 shadow-sm border backdrop-blur-sm ${cardBg}`}>
               <h3 className={`text-sm font-semibold mb-4 ${headingColor}`}>Assessment Metrics</h3>
               {data.avgAssessmentScore !== null ? (
                 <div className="space-y-3">
@@ -131,7 +130,7 @@ export default function SeriesDetail({ seriesName, seriesData, onBack, onSelectU
             </div>
 
             {/* Workload */}
-            <div className={`col-span-12 md:col-span-3 rounded-xl p-5 shadow-sm border ${cardBg}`}>
+            <div className={`col-span-12 md:col-span-3 rounded-xl p-5 shadow-sm border backdrop-blur-sm ${cardBg}`}>
               <h3 className={`text-sm font-semibold mb-4 ${headingColor}`}>Avg Engagement per Student</h3>
               <WorkloadBar label="Avg" value={data.avgWorkload} maxValue={500} color="#ef4444" />
               <WorkloadBar label="P80" value={data.avgP80Workload} maxValue={500} color="#f97316" />
@@ -142,7 +141,7 @@ export default function SeriesDetail({ seriesName, seriesData, onBack, onSelectU
 
           {/* Universities Table */}
           <div
-            className={`rounded-xl shadow-sm overflow-hidden animate-fade-slide-up border ${isDark ? 'border-slate-700' : 'border-gray-100'}`}
+            className={`rounded-xl shadow-sm overflow-hidden animate-fade-slide-up border ${isDark ? 'border-white/10 bg-slate-900/70' : 'border-gray-100 bg-white/95'}`}
             style={{ animationDelay: '0.1s' }}
           >
             <div className={`px-5 py-4 border-b flex items-center justify-between ${isDark ? 'border-slate-700 bg-slate-800' : 'border-gray-100 bg-white'}`}>
@@ -156,13 +155,13 @@ export default function SeriesDetail({ seriesName, seriesData, onBack, onSelectU
                     <th className={`text-left px-4 py-3 font-medium sticky left-0 z-10 ${tableStickyHeader}`}>University</th>
                     <th className="text-center px-2 py-3 font-medium">Sections</th>
                     <th className={`text-center px-2 py-3 font-medium ${isDark ? 'bg-amber-900/30 text-amber-400' : 'bg-amber-50 text-amber-700'}`}>Allotted Hrs</th>
-                    <th className="text-center px-2 py-3 font-medium">Avg Sessions</th>
-                    <th className="text-center px-2 py-3 font-medium">Lec %</th>
-                    <th className="text-center px-2 py-3 font-medium">Prac %</th>
+                    <th className="text-center px-2 py-3 font-medium">Avg Delivery</th>
+                    <th className="text-center px-2 py-3 font-medium">Lecture %</th>
+                    <th className="text-center px-2 py-3 font-medium">Practice %</th>
                     <th className="text-center px-2 py-3 font-medium">Exam %</th>
                     <th className="text-center px-2 py-3 font-medium">Overall %</th>
                     <th className={`text-center px-2 py-3 font-medium ${isDark ? 'bg-purple-900/30 text-purple-400' : 'bg-purple-50 text-purple-600'}`}>Score %</th>
-                    <th className={`text-center px-2 py-3 font-medium ${isDark ? 'bg-indigo-900/30 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>Particip #</th>
+                    <th className={`text-center px-2 py-3 font-medium ${isDark ? 'bg-indigo-900/30 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>Participation #</th>
                     <th className="text-center px-2 py-3 font-medium">Action</th>
                   </tr>
                 </thead>

@@ -23,17 +23,17 @@
   --color-border-secondary: #cbd5e1;
 
   /* Accent */
-  --color-accent-primary: #6366f1;
-  --color-accent-hover: #4f46e5;
-  --color-accent-light: #eef2ff;
-  --color-accent-muted: rgba(99, 102, 241, 0.12);
+  --color-accent-primary: #0f766e;
+  --color-accent-hover: #115e59;
+  --color-accent-light: #ecfeff;
+  --color-accent-muted: rgba(15, 118, 110, 0.14);
 
   /* Cards */
   --color-bg-card: #ffffff;
 
   /* Gradients */
-  --gradient-page: linear-gradient(135deg, #f8fafc 0%, #eef2ff 50%, #f0f9ff 100%);
-  --gradient-hero: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%);
+  --gradient-page: radial-gradient(circle at 15% 15%, #ccfbf1 0%, transparent 42%), radial-gradient(circle at 85% 5%, #ffedd5 0%, transparent 36%), linear-gradient(140deg, #f8fafc 0%, #ecfeff 54%, #fefce8 100%);
+  --gradient-hero: linear-gradient(128deg, #042f2e 0%, #0f766e 55%, #1d4ed8 100%);
 }
 
 :root[data-theme="dark"] {
@@ -59,17 +59,17 @@
   --color-border-secondary: #475569;
 
   /* Accent */
-  --color-accent-primary: #818cf8;
-  --color-accent-hover: #6366f1;
-  --color-accent-light: #1e1b4b;
-  --color-accent-muted: rgba(129, 140, 248, 0.15);
+  --color-accent-primary: #14b8a6;
+  --color-accent-hover: #0d9488;
+  --color-accent-light: #0b3f3a;
+  --color-accent-muted: rgba(20, 184, 166, 0.18);
 
   /* Cards */
   --color-bg-card: #1e293b;
 
   /* Gradients */
-  --gradient-page: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
-  --gradient-hero: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+  --gradient-page: radial-gradient(circle at 20% 0%, #0f766e33 0%, transparent 42%), radial-gradient(circle at 88% 8%, #f59e0b29 0%, transparent 36%), linear-gradient(145deg, #020617 0%, #0f172a 45%, #082f49 100%);
+  --gradient-hero: linear-gradient(128deg, #022c22 0%, #115e59 52%, #1d4ed8 100%);
 }
 
 /* Semantic colors (same in both themes) */

@@ -96,27 +96,26 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
   const dates = getSemesterDatesForInstitute(selectedInstitute, semester);
 
   // Theme helpers
-  const pageBg = isDark ? 'bg-slate-900' : 'bg-gray-50';
-  const cardBg = isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-100';
-  const cardBgNoB = isDark ? 'bg-slate-800' : 'bg-white';
+  const pageBg = 'ui-shell';
+  const cardBg = isDark ? 'bg-slate-900/75 border-white/10' : 'bg-white/95 border-teal-100';
   const headingColor = isDark ? 'text-slate-200' : 'text-gray-700';
   const subColor = isDark ? 'text-slate-400' : 'text-gray-600';
   const muted = isDark ? 'text-slate-500' : 'text-gray-500';
   const bodyText = isDark ? 'text-slate-100' : 'text-gray-900';
   const borderColor = isDark ? 'border-slate-700' : 'border-gray-100';
   const statAccentBg = isDark ? 'bg-blue-900/30 border-blue-800' : 'bg-blue-50 border-blue-100';
-  const statGrayBg = isDark ? 'bg-slate-700' : 'bg-gray-100';
-  const completionBg = isDark ? 'bg-slate-700' : 'bg-gray-50';
-  const tableBg = isDark ? 'bg-slate-800' : 'bg-white';
-  const tableHeaderBg = isDark ? 'bg-slate-700' : 'bg-gray-50';
+  const statGrayBg = isDark ? 'bg-slate-800' : 'bg-gray-100';
+  const completionBg = isDark ? 'bg-slate-800' : 'bg-gray-50';
+  const tableBg = isDark ? 'bg-slate-900/85' : 'bg-white';
+  const tableHeaderBg = isDark ? 'bg-slate-800' : 'bg-gray-50';
   const tableHeaderText = isDark ? 'text-slate-400' : 'text-gray-500';
   const tableRowHover = isDark ? 'hover:bg-slate-700/50' : 'hover:bg-indigo-50/30';
   const tableRowDivide = isDark ? 'divide-slate-700' : 'divide-gray-50';
   const tableCellSticky = isDark
-    ? 'bg-slate-800 hover:bg-slate-700/50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]'
+    ? 'bg-slate-900/95 hover:bg-slate-800/90 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]'
     : 'bg-white hover:bg-indigo-50/30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]';
   const tableStickyHeader = isDark
-    ? 'bg-slate-700 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]'
+    ? 'bg-slate-800 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]'
     : 'bg-gray-50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]';
   const backBtnCls = isDark
     ? 'text-slate-400 hover:text-slate-100 hover:bg-slate-700'
@@ -178,11 +177,83 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
     </>
   );
 
+  const NON_CORE_COURSES = new Set([
+    'Introduction to NIAT',
+    'NIAT Practice Page',
+    'Logical Thinking',
+    'Talent Development Program',
+    'Yoga',
+    'Human Values & Ethics',
+    'Indian Constitution',
+    'Environmental Science',
+    'Language Elective',
+    'Engineering Drawing',
+    'Business English',
+  ]);
+
+  const getCourseRows = () => {
+    return metrics.courses
+      .map((course) => {
+        const displayName = course;
+        const cd = metrics.courseGroups[course] || [];
+
+        const summarizeType = (sessionType) => {
+          const rows = cd.filter((d) => d.session_type === sessionType);
+          if (!rows.length) return null;
+          const totalSessions = rows.reduce((sum, row) => sum + (row.sessions || 0), 0);
+          const totalAvgTime = rows.reduce((sum, row) => sum + (row.avg_time || 0), 0);
+          const totalP80Time = rows.reduce((sum, row) => sum + (row.p80_time || 0), 0);
+          const avgCompletion = rows.reduce((sum, row) => sum + (row.completion || 0), 0) / rows.length;
+          return {
+            sessions: totalSessions,
+            completion: avgCompletion,
+            avg_time: totalAvgTime,
+            p80_time: totalP80Time,
+          };
+        };
+
+        const l = summarizeType('LECTURE');
+        const p = summarizeType('PRACTICE');
+        const e = summarizeType('EXAM');
+        const lc = l?.sessions || 0;
+        const pc = p?.sessions || 0;
+        const ec = e?.sessions || 0;
+        const total = lc + pc + ec;
+        const avgT = cd.reduce((s, d) => s + (d.avg_time || 0), 0);
+        const p80T = cd.reduce((s, d) => s + (d.p80_time || 0), 0);
+        const ca = assessmentMetrics?.courses.find((c) => c.name === displayName);
+
+        return {
+          course,
+          displayName,
+          l,
+          p,
+          e,
+          lc,
+          pc,
+          ec,
+          total,
+          avgT,
+          p80T,
+          ca,
+        };
+      })
+      .filter((row) => {
+        const hasDelivery = row.total > 0;
+        const hasAssessment = Boolean(row.ca);
+        const isSupportCourse = NON_CORE_COURSES.has(row.displayName);
+        return (hasDelivery || hasAssessment) && !isSupportCourse;
+      })
+      .sort((a, b) => b.total - a.total);
+  };
+
+  const courseRows = getCourseRows();
+
   return (
     <AnimatedView>
       <div className={`min-h-screen ${pageBg} p-4 sm:p-5`}>
         {/* Top bar */}
-        <div className="max-w-7xl mx-auto mb-5">
+        <div className="hero-panel max-w-7xl mx-auto mb-5 rounded-2xl p-4 sm:p-5">
           <button
             onClick={onBack}
             onMouseDown={addRipple}
@@ -255,7 +326,7 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
             </svg>
           </button>
           {sidebarExpanded && (
-            <div className={`mt-2 rounded-xl shadow-sm p-5 border animate-fade-slide-up ${cardBg}`}>
+            <div className={`mt-2 rounded-xl shadow-sm p-5 border backdrop-blur-sm animate-fade-slide-up ${cardBg}`}>
               <SidebarContent />
             </div>
           )}
@@ -264,7 +335,7 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
         <div className="max-w-7xl mx-auto flex gap-5">
           {/* Desktop sidebar */}
           <div className="hidden lg:block w-64 flex-shrink-0">
-            <div className={`rounded-xl shadow-sm p-5 sticky top-5 border ${cardBg}`}>
+            <div className={`rounded-xl shadow-sm p-5 sticky top-5 border backdrop-blur-sm ${cardBg}`}>
               <SidebarContent />
             </div>
           </div>
@@ -273,7 +344,7 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
             <div className="grid grid-cols-12 gap-5">
               {/* Sessions mix */}
               <div className="col-span-12 md:col-span-3 space-y-5">
-                <div className={`rounded-xl p-5 shadow-sm border ${cardBg}`}>
+                <div className={`rounded-xl p-5 shadow-sm border backdrop-blur-sm ${cardBg}`}>
                   <h3 className={`text-sm font-semibold mb-4 ${headingColor}`}>Sessions mix</h3>
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
@@ -302,7 +373,7 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
 
               {/* Completion */}
               <div className="col-span-12 md:col-span-5 space-y-5">
-                <div className={`rounded-xl p-5 shadow-sm border ${cardBg}`}>
+                <div className={`rounded-xl p-5 shadow-sm border backdrop-blur-sm ${cardBg}`}>
                   <h3 className={`text-sm font-semibold mb-4 ${headingColor}`}>Completion</h3>
                   <div className="grid grid-cols-3 gap-3">
                     <div className={`rounded-xl p-4 text-center ${completionBg}`}>
@@ -319,7 +390,7 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
                     </div>
                   </div>
                 </div>
-                <div className={`rounded-xl p-5 shadow-sm border ${cardBg}`}>
+                <div className={`rounded-xl p-5 shadow-sm border backdrop-blur-sm ${cardBg}`}>
                   <div className="flex items-center gap-5">
                     <div className="relative">
                       <DonutChart value={metrics.examCompletion} size={90} strokeWidth={10} color="#f59e0b" />
@@ -336,7 +407,7 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
 
               {/* Workload */}
               <div className="col-span-12 md:col-span-4">
-                <div className={`rounded-xl p-5 shadow-sm h-full border ${cardBg}`}>
+                <div className={`rounded-xl p-5 shadow-sm h-full border backdrop-blur-sm ${cardBg}`}>
                   <h3 className={`text-sm font-semibold mb-4 ${headingColor}`}>Workload (per-student)</h3>
                   <WorkloadBar label="Avg" value={metrics.avgTime} maxValue={500} color="#ef4444" />
                   <WorkloadBar label="P80" value={metrics.p80Time} maxValue={500} color="#f97316" />
@@ -348,11 +419,16 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
 
             {/* Course-wise Breakdown */}
             <div
-              className={`mt-5 rounded-xl shadow-sm overflow-hidden animate-fade-slide-up border ${isDark ? 'border-slate-700' : 'border-gray-100'}`}
+              className={`mt-5 rounded-xl shadow-sm overflow-hidden animate-fade-slide-up border ${isDark ? 'border-white/10 bg-slate-900/70' : 'border-gray-100 bg-white/95'}`}
               style={{ animationDelay: '0.12s' }}
             >
               <div className={`px-5 py-4 border-b flex items-center justify-between ${isDark ? 'border-slate-700 bg-slate-800' : 'border-gray-100 bg-white'}`}>
-                <h3 className={`text-sm font-semibold ${headingColor}`}>Course-wise Breakdown</h3>
+                <div>
+                  <h3 className={`text-sm font-semibold ${headingColor}`}>Course-wise Breakdown</h3>
+                  <p className={`mt-0.5 text-xs ${muted}`}>
+                    Practice% and Exam% are completion rates. Score% is average assessment score. Participation# is average learner count.
+                  </p>
+                </div>
                 <span className={`text-xs sm:hidden ${muted}`}>← scroll →</span>
               </div>
               <div className="table-scroll-container overflow-x-auto">
@@ -360,74 +436,57 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
                   <thead className={tableHeaderBg}>
                     <tr className={`text-xs uppercase tracking-wider ${tableHeaderText}`}>
                       <th className={`text-left px-4 py-3 font-medium sticky left-0 z-10 ${tableStickyHeader}`}>Course</th>
-                      <th className={`text-center px-2 py-3 font-medium ${isDark ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>Lec</th>
-                      <th className={`text-center px-2 py-3 font-medium ${isDark ? 'bg-emerald-900/30 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>Prac</th>
-                      <th className={`text-center px-2 py-3 font-medium ${isDark ? 'bg-amber-900/30 text-amber-400' : 'bg-amber-50 text-amber-600'}`}>Exam</th>
-                      <th className="text-center px-2 py-3 font-medium">Total</th>
-                      <th className="text-center px-2 py-3 font-medium">Lec %</th>
-                      <th className="text-center px-2 py-3 font-medium">Prac %</th>
+                      <th className={`text-center px-2 py-3 font-medium ${isDark ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>Lect Sess</th>
+                      <th className={`text-center px-2 py-3 font-medium ${isDark ? 'bg-emerald-900/30 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>Prac Sess</th>
+                      <th className={`text-center px-2 py-3 font-medium ${isDark ? 'bg-amber-900/30 text-amber-400' : 'bg-amber-50 text-amber-600'}`}>Exam Sess</th>
+                      <th className="text-center px-2 py-3 font-medium">Total Sess</th>
+                      <th className="text-center px-2 py-3 font-medium">Lecture %</th>
+                      <th className="text-center px-2 py-3 font-medium">Practice %</th>
                       <th className="text-center px-2 py-3 font-medium">Exam %</th>
                       <th className={`text-center px-2 py-3 font-medium ${isDark ? 'bg-purple-900/30 text-purple-400' : 'bg-purple-50 text-purple-600'}`}>Score %</th>
-                      <th className={`text-center px-2 py-3 font-medium ${isDark ? 'bg-indigo-900/30 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>Particip #</th>
+                      <th className={`text-center px-2 py-3 font-medium ${isDark ? 'bg-indigo-900/30 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>Participation #</th>
                       <th className="text-center px-2 py-3 font-medium">Avg Time</th>
                       <th className="text-center px-2 py-3 font-medium">P80 Time</th>
                     </tr>
                   </thead>
                   <tbody className={`divide-y ${tableRowDivide}`}>
-                    {metrics.courses.map((course) => {
-                      const displayName = course;
-                      const cd = metrics.courseGroups[course] || [];
-                      const summarizeType = (sessionType) => {
-                        const rows = cd.filter(d => d.session_type === sessionType);
-                        if (!rows.length) return null;
-                        const totalSessions = rows.reduce((sum, row) => sum + (row.sessions || 0), 0);
-                        const totalAvgTime = rows.reduce((sum, row) => sum + (row.avg_time || 0), 0);
-                        const totalP80Time = rows.reduce((sum, row) => sum + (row.p80_time || 0), 0);
-                        const avgCompletion = rows.reduce((sum, row) => sum + (row.completion || 0), 0) / rows.length;
-                        return {
-                          sessions: totalSessions,
-                          completion: avgCompletion,
-                          avg_time: totalAvgTime,
-                          p80_time: totalP80Time,
-                        };
-                      };
-                      const l = summarizeType('LECTURE');
-                      const p = summarizeType('PRACTICE');
-                      const e = summarizeType('EXAM');
-                      const lc = l?.sessions || 0, pc = p?.sessions || 0, ec = e?.sessions || 0;
-                      const total = lc + pc + ec;
-                      const avgT = cd.reduce((s, d) => s + (d.avg_time || 0), 0);
-                      const p80T = cd.reduce((s, d) => s + (d.p80_time || 0), 0);
-                      const ca = assessmentMetrics?.courses.find(c => c.name === displayName);
+                    {courseRows.map((row) => {
                       return (
-                        <tr key={course} className={`transition-colors ${tableRowHover}`}>
-                          <td className={`px-4 py-3 text-sm font-medium sticky left-0 z-10 whitespace-nowrap max-w-[180px] truncate ${tableCellSticky} ${isDark ? 'text-slate-200' : 'text-gray-800'}`} title={displayName}>
-                            {displayName}
+                        <tr key={row.course} className={`transition-colors ${tableRowHover}`}>
+                          <td className={`px-4 py-3 text-sm font-medium sticky left-0 z-10 whitespace-nowrap max-w-[180px] truncate ${tableCellSticky} ${isDark ? 'text-slate-200' : 'text-gray-800'}`} title={row.displayName}>
+                            {row.displayName}
                           </td>
                           <td className="px-2 py-3 text-center">
-                            <span className={`inline-flex items-center justify-center w-8 h-6 text-xs font-bold rounded ${isDark ? 'bg-blue-900/40 text-blue-300' : 'bg-blue-100 text-blue-700'}`}>{r2(lc)}</span>
+                            <span className={`inline-flex items-center justify-center w-8 h-6 text-xs font-bold rounded ${isDark ? 'bg-blue-900/40 text-blue-300' : 'bg-blue-100 text-blue-700'}`}>{r2(row.lc)}</span>
                           </td>
                           <td className="px-2 py-3 text-center">
-                            <span className={`inline-flex items-center justify-center w-8 h-6 text-xs font-bold rounded ${isDark ? 'bg-emerald-900/40 text-emerald-300' : 'bg-emerald-100 text-emerald-700'}`}>{r2(pc)}</span>
+                            <span className={`inline-flex items-center justify-center w-8 h-6 text-xs font-bold rounded ${isDark ? 'bg-emerald-900/40 text-emerald-300' : 'bg-emerald-100 text-emerald-700'}`}>{r2(row.pc)}</span>
                           </td>
                           <td className="px-2 py-3 text-center">
-                            <span className={`inline-flex items-center justify-center w-8 h-6 text-xs font-bold rounded ${isDark ? 'bg-amber-900/40 text-amber-300' : 'bg-amber-100 text-amber-700'}`}>{r2(ec)}</span>
+                            <span className={`inline-flex items-center justify-center w-8 h-6 text-xs font-bold rounded ${isDark ? 'bg-amber-900/40 text-amber-300' : 'bg-amber-100 text-amber-700'}`}>{r2(row.ec)}</span>
                           </td>
-                          <td className={`px-2 py-3 text-sm text-center font-semibold ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>{r2(total)}</td>
-                          <td className={`px-2 py-3 text-center text-sm ${isDark ? 'text-slate-300' : ''}`}>{l ? `${l.completion.toFixed(1)}%` : '—'}</td>
-                          <td className={`px-2 py-3 text-center text-sm ${isDark ? 'text-slate-300' : ''}`}>{p ? `${p.completion.toFixed(1)}%` : '—'}</td>
-                          <td className={`px-2 py-3 text-center text-sm ${isDark ? 'text-slate-300' : ''}`}>{e ? `${e.completion.toFixed(1)}%` : '—'}</td>
+                          <td className={`px-2 py-3 text-sm text-center font-semibold ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>{r2(row.total)}</td>
+                          <td className={`px-2 py-3 text-center text-sm ${isDark ? 'text-slate-300' : ''}`}>{row.l ? `${row.l.completion.toFixed(1)}%` : '—'}</td>
+                          <td className={`px-2 py-3 text-center text-sm ${isDark ? 'text-slate-300' : ''}`}>{row.p ? `${row.p.completion.toFixed(1)}%` : '—'}</td>
+                          <td className={`px-2 py-3 text-center text-sm ${isDark ? 'text-slate-300' : ''}`}>{row.e ? `${row.e.completion.toFixed(1)}%` : '—'}</td>
                           <td className={`px-2 py-3 text-center text-sm font-semibold ${isDark ? 'text-purple-300 bg-purple-900/20' : 'text-purple-700 bg-purple-50/30'}`}>
-                            {ca ? `${(ca.avgScore * 100).toFixed(1)}%` : '—'}
+                            {row.ca ? `${(row.ca.avgScore * 100).toFixed(1)}%` : '—'}
                           </td>
                           <td className={`px-2 py-3 text-center text-sm font-semibold ${isDark ? 'text-indigo-300 bg-indigo-900/20' : 'text-indigo-700 bg-indigo-50/30'}`}>
-                            {ca ? `${ca.avgParticipation.toFixed(0)}` : '—'}
+                            {row.ca ? `${row.ca.avgParticipation.toFixed(0)}` : '—'}
                           </td>
-                          <td className={`px-2 py-3 text-sm text-center ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>{avgT.toFixed(1)}h</td>
-                          <td className={`px-2 py-3 text-sm text-center ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>{p80T.toFixed(1)}h</td>
+                          <td className={`px-2 py-3 text-sm text-center ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>{row.avgT.toFixed(1)}h</td>
+                          <td className={`px-2 py-3 text-sm text-center ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>{row.p80T.toFixed(1)}h</td>
                         </tr>
                       );
                     })}
+                    {courseRows.length === 0 && (
+                      <tr>
+                        <td colSpan={12} className={`px-4 py-5 text-center text-sm ${muted}`}>
+                          No core courses found for this university and section.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>

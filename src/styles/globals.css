@@ -6,6 +6,13 @@ html {
 
 body {
   transition: background-color 0.3s ease, color 0.3s ease;
+  background-image: var(--gradient-page);
+  background-attachment: fixed;
+}
+
+h1, h2, h3, h4 {
+  font-family: "Space Grotesk", "Manrope", "Segoe UI", sans-serif;
+  letter-spacing: -0.015em;
 }
 
 /* Entrance animations */
@@ -76,6 +83,20 @@ body {
 
 /* Focus-visible outlines for keyboard nav */
 :focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; border-radius: 4px; }
+
+.ui-shell {
+  min-height: 100vh;
+  background-image: var(--gradient-page);
+  background-attachment: fixed;
+}
+
+.hero-panel {
+  background: linear-gradient(120deg, rgba(2, 132, 199, 0.2), rgba(20, 184, 166, 0.2));
+  border: 1px solid var(--color-glass-border);
+  box-shadow: var(--shadow-glass);
+  backdrop-filter: blur(10px) saturate(150%);
+  -webkit-backdrop-filter: blur(10px) saturate(150%);
+}
 
 /* Touch targets: minimum 44px hit area */
 .touch-target { min-height: 44px; min-width: 44px; display: inline-flex; align-items: center; justify-content: center; }

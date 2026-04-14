@@ -7,9 +7,7 @@ import { addRipple } from '../utils/ripple';
 export default function SeriesOverview({ seriesData, onSelectSeries, analysisType, semester, batch, filters }) {
   const { isDark } = useTheme();
 
-  const pageBg = isDark
-    ? 'bg-slate-900'
-    : 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100';
+  const pageBg = 'ui-shell';
   const headingColor = isDark ? 'text-slate-100' : 'text-gray-900';
   const subColor = isDark ? 'text-slate-400' : 'text-gray-500';
   const muted = isDark ? 'text-slate-500' : 'text-gray-400';
@@ -25,8 +23,8 @@ export default function SeriesOverview({ seriesData, onSelectSeries, analysisTyp
     <AnimatedView>
       <div className={`min-h-screen ${pageBg} p-4 sm:p-6`}>
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-6 sm:mb-8 animate-fade-slide-up">
-            <h1 className={`text-2xl sm:text-3xl font-bold mb-2 ${headingColor}`}>University Series Overview</h1>
+          <div className="hero-panel text-center mb-6 sm:mb-8 rounded-3xl p-5 sm:p-7 animate-fade-slide-up">
+            <h1 className={`text-2xl sm:text-3xl font-bold mb-2 ${isDark ? 'text-white' : headingColor}`}>University Series Overview</h1>
             <p className={`mb-1 ${subColor}`}>{semester} • {batch}</p>
             {filters?.startDate && filters?.endDate && (
               <p className={`text-sm mb-1 ${muted}`}>📅 {filters.startDate} → {filters.endDate}</p>
@@ -40,7 +38,7 @@ export default function SeriesOverview({ seriesData, onSelectSeries, analysisTyp
           </div>
 
           <div
-            className={`max-w-4xl mx-auto mb-6 sm:mb-8 rounded-xl p-4 border animate-fade-slide-up ${infoBg}`}
+            className={`max-w-4xl mx-auto mb-6 sm:mb-8 rounded-2xl p-4 border animate-fade-slide-up ${infoBg}`}
             style={{ animationDelay: '0.05s' }}
           >
             <div className="flex items-start gap-3">
@@ -73,8 +71,8 @@ export default function SeriesOverview({ seriesData, onSelectSeries, analysisTyp
                   key={series.name}
                   onClick={() => onSelectSeries(series.name)}
                   onMouseDown={addRipple}
-                  className={`card-enter ripple-btn rounded-2xl shadow-lg overflow-hidden cursor-pointer transform transition-all duration-200 hover:scale-[1.025] hover:shadow-xl active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-                    isDark ? 'bg-slate-800' : 'bg-white'
+                  className={`card-enter ripple-btn rounded-2xl shadow-lg overflow-hidden cursor-pointer transform transition-all duration-200 hover:-translate-y-1 hover:shadow-xl active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-teal-500 ${
+                    isDark ? 'bg-slate-900/75 border border-white/10' : 'bg-white/95 border border-teal-100'
                   }`}
                   tabIndex={0}
                   role="button"
@@ -99,19 +97,19 @@ export default function SeriesOverview({ seriesData, onSelectSeries, analysisTyp
 
                   <div className="p-5">
                     <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
-                      <div className={`rounded-lg p-2 sm:p-3 text-center ${isDark ? 'bg-slate-700' : 'bg-gray-50'}`}>
+                      <div className={`rounded-lg p-2 sm:p-3 text-center ${isDark ? 'bg-slate-800' : 'bg-gray-50'}`}>
                         <p className={`text-[10px] sm:text-xs ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Avg Allotted</p>
                         <p className="text-lg sm:text-xl font-bold text-amber-600">
                           {data.avgAllottedHours ? data.avgAllottedHours.toFixed(0) : '—'}
                         </p>
                       </div>
-                      <div className={`rounded-lg p-2 sm:p-3 text-center ${isDark ? 'bg-slate-700' : 'bg-gray-50'}`}>
-                        <p className={`text-[10px] sm:text-xs ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Avg Delivered</p>
+                      <div className={`rounded-lg p-2 sm:p-3 text-center ${isDark ? 'bg-slate-800' : 'bg-gray-50'}`}>
+                        <p className={`text-[10px] sm:text-xs ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Avg University Delivery</p>
                         <p className={`text-lg sm:text-xl font-bold ${isDark ? 'text-slate-100' : 'text-gray-800'}`}>
                           {data.avgSessions.toFixed(0)}
                         </p>
                       </div>
-                      <div className={`rounded-lg p-2 sm:p-3 text-center ${isDark ? 'bg-slate-700' : 'bg-gray-50'}`}>
+                      <div className={`rounded-lg p-2 sm:p-3 text-center ${isDark ? 'bg-slate-800' : 'bg-gray-50'}`}>
                         <p className={`text-[10px] sm:text-xs ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Total Students</p>
                         <p className={`text-lg sm:text-xl font-bold ${isDark ? 'text-slate-100' : 'text-gray-800'}`}>
                           {data.totalStudents}
@@ -171,7 +169,7 @@ export default function SeriesOverview({ seriesData, onSelectSeries, analysisTyp
                   </div>
 
                   <div className="px-5 pb-4">
-                    <button className={`w-full py-2 rounded-lg text-sm font-medium transition-colors touch-target ${isDark ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}>
+                    <button className={`w-full py-2 rounded-lg text-sm font-medium transition-colors touch-target ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-200' : 'bg-teal-50 hover:bg-teal-100 text-teal-700'}`}>
                       View Details →
                     </button>
                   </div>
