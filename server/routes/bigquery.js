@@ -17,7 +17,10 @@ router.get('/status', async (req, res) => {
       connected: true,
       projectId: result.projectId,
       dataset: result.dataset,
-      table: result.table,
+      table: result.semesterTable,
+      semesterTable: result.semesterTable,
+      assessmentTable: result.assessmentTable,
+      usersTable: result.usersTable,
     });
   } catch (err) {
     res.status(500).json({ connected: false, error: err.message });

@@ -87,7 +87,7 @@ export default function App() {
       setView('select-analysis');
       if (assessmentData?.length) setRawAssessmentData(assessmentData);
     } else {
-      alert('No summary data returned from BigQuery.');
+      alert(`No BigQuery data returned for ${selectedBatch} • ${selectedSemester}.`);
     }
   }, []);
 

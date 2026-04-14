@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_BQ_API_URL || 'http://localhost:3001/api/bigquery';
+const API_BASE = import.meta.env.VITE_BQ_API_URL || 'http://localhost:3002/api/bigquery';
 
 export async function checkConnection() {
   const res = await fetch(`${API_BASE}/status`, {

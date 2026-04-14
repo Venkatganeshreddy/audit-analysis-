@@ -4,7 +4,7 @@ import AnimatedView from './ui/AnimatedView';
 import ScrollToTop from './ui/ScrollToTop';
 import DonutChart from './ui/DonutChart';
 import WorkloadBar from './ui/WorkloadBar';
-import { getCourseMapping, getSemesterDatesForInstitute, r2 } from '../utils/semesterHelpers';
+import { getSemesterDatesForInstitute, normalizeCourseName, r2 } from '../utils/semesterHelpers';
 import { addRipple } from '../utils/ripple';
 
 export default function UniversityDetail({ data, assessmentData, selectedInstitute, onBack, onReset, semester }) {
@@ -27,10 +27,9 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
     let filtered = assessmentData.filter(d => d.university === selectedInstitute);
     if (selectedSection) filtered = filtered.filter(d => d.section === selectedSection);
     if (!filtered.length) return null;
-    const courseMap = getCourseMapping(semester);
     const courseScores = {};
     filtered.forEach(d => {
-      const name = courseMap[d.course_code] || d.course_code;
+      const name = normalizeCourseName(d.course_code, semester);
       if (!courseScores[name]) courseScores[name] = { scores: [], parts: [] };
       courseScores[name].scores.push(d.avg_score);
       courseScores[name].parts.push(d.avg_participation);
@@ -51,7 +50,13 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
     let filtered = data.filter(d => d.institute === selectedInstitute);
     if (selectedSection) filtered = filtered.filter(d => d.section === selectedSection);
     if (!filtered.length) return null;
-    const courses = [...new Set(filtered.map(d => d.course))];
+    const courseGroups = filtered.reduce((acc, row) => {
+      const courseName = normalizeCourseName(row.course, semester);
+      if (!acc[courseName]) acc[courseName] = [];
+      acc[courseName].push(row);
+      return acc;
+    }, {});
+    const courses = Object.keys(courseGroups).sort();
     const lec = filtered.filter(d => d.session_type === 'LECTURE');
     const prac = filtered.filter(d => d.session_type === 'PRACTICE');
     const exam = filtered.filter(d => d.session_type === 'EXAM');
@@ -59,6 +64,7 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
     const avg = (a, k) => a.length ? sum(a, k) / a.length : 0;
     return {
       courses, courseCount: courses.length,
+      courseGroups,
       lectureCount: sum(lec, 'sessions'),
       practiceCount: sum(prac, 'sessions'),
       examCount: sum(exam, 'sessions'),
@@ -369,9 +375,8 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
                   </thead>
                   <tbody className={`divide-y ${tableRowDivide}`}>
                     {metrics.courses.map((course) => {
-                      const courseMap = getCourseMapping(semester);
-                      const displayName = courseMap[course] || course;
-                      const cd = metrics.filtered.filter(d => d.course === course);
+                      const displayName = course;
+                      const cd = metrics.courseGroups[course] || [];
                       const l = cd.find(d => d.session_type === 'LECTURE');
                       const p = cd.find(d => d.session_type === 'PRACTICE');
                       const e = cd.find(d => d.session_type === 'EXAM');
