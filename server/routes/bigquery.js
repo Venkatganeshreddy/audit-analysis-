@@ -21,6 +21,7 @@ router.get('/status', async (req, res) => {
       semesterTable: result.semesterTable,
       assessmentTable: result.assessmentTable,
       usersTable: result.usersTable,
+      scheduleTable: result.scheduleTable,
     });
   } catch (err) {
     res.status(500).json({ connected: false, error: err.message });

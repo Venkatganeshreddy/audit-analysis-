@@ -11,6 +11,7 @@ const DEFAULT_SEMESTER_TABLE = 'all_users_question_attempt_details_for_question_
 const DEFAULT_ASSESSMENT_TABLE = 'all_users_question_attempt_details_for_question_set_units';
 const DEFAULT_USERS_TABLE = 'niat_and_intensive_offline_users_details';
 const DEFAULT_CONTENT_TABLE = 'content_all_products_unit_wise_content_hierarchy_details';
+const DEFAULT_SCHEDULE_TABLE = 'niat_and_intensive_offline_section_wise_daily_learning_schedule_details';
 
 function getEnv(...keys) {
   for (const key of keys) {
@@ -198,6 +199,10 @@ const contentTableRef = parseTableReference(
   getEnv('BQ_CONTENT_TABLE', 'BQCONTENTTABLE'),
   DEFAULT_CONTENT_TABLE,
 );
+const scheduleTableRef = parseTableReference(
+  getEnv('BQ_SCHEDULE_TABLE', 'BQSCHEDULETABLE'),
+  DEFAULT_SCHEDULE_TABLE,
+);
 
 const projectId = getEnv('BQ_PROJECT_ID', 'BQPROJECTID') || semesterTableRef.projectId;
 const dataset = getEnv('BQ_DATASET', 'BQDATASET') || semesterTableRef.dataset;
@@ -206,6 +211,7 @@ const semesterTable = formatTableReference(semesterTableRef);
 const assessmentTable = formatTableReference(assessmentTableRef);
 const usersTable = formatTableReference(usersTableRef);
 const contentTable = formatTableReference(contentTableRef);
+const scheduleTable = formatTableReference(scheduleTableRef);
 
 const bigquery = new BigQuery({
   projectId,
@@ -248,6 +254,37 @@ function buildContentSubquery() {
   `;
 }
 
+function buildScheduleFilters(filters = {}) {
+  const dateExpr = 'DATE(s.session_date)';
+  const instituteExpr = 's.institute_name';
+  const conditions = [`TRIM(COALESCE(${instituteExpr}, '')) != ''`];
+  const params = {};
+
+  const semesterWindowClause = buildSemesterWindowClause(filters.semester, filters.batch, instituteExpr, dateExpr, params);
+  if (semesterWindowClause) conditions.push(semesterWindowClause);
+
+  if (filters.startDate) {
+    conditions.push(`${dateExpr} >= @startDate`);
+    params.startDate = filters.startDate;
+  }
+
+  if (filters.endDate) {
+    conditions.push(`${dateExpr} <= @endDate`);
+    params.endDate = filters.endDate;
+  }
+
+  if (shouldApplyBatchFilter(filters.batch)) {
+    conditions.push(`LOWER(COALESCE(s.batch_name, '')) LIKE @batchPattern`);
+    params.batchPattern = `%${filters.batch.trim().toLowerCase()}%`;
+  }
+
+  return {
+    whereClause: conditions.join(' AND '),
+    params,
+    dateExpr,
+  };
+}
+
 export async function testConnection() {
   await Promise.all([
     bigquery.query(`SELECT 1 AS test FROM ${semesterTable} LIMIT 1`),
@@ -262,46 +299,88 @@ export async function testConnection() {
     assessmentTable: assessmentTableRef.table,
     usersTable: usersTableRef.table,
     contentTable: contentTableRef.table,
+    scheduleTable: scheduleTableRef.table,
   };
 }
 
 export async function fetchSemesterData(filters = {}) {
-  const { whereClause, params, dateExpr } = buildFilters(filters);
-  const sessionTypeExpression = getSessionTypeExpression();
-  const courseExpression = getCourseExpression();
-  const sectionExpression = getSectionExpression();
+  const { whereClause, params, dateExpr } = buildScheduleFilters(filters);
 
   const sql = `
-    WITH users AS (
-      ${buildUsersSubquery()}
-    ),
-    content AS (
+    WITH content AS (
       ${buildContentSubquery()}
+    ),
+    schedule_base AS (
+      SELECT
+        s.institute_name AS institute,
+        COALESCE(NULLIF(TRIM(s.section_name), ''), 'Unknown') AS section,
+        s.session_type,
+        s.session_status,
+        ${dateExpr} AS report_date,
+        s.session_id,
+        COALESCE(content.course_title, s.session_name) AS course_candidate
+      FROM ${scheduleTable} s
+      LEFT JOIN content ON s.resource_id = content.unit_id
+      WHERE ${whereClause}
+    ),
+    session_course AS (
+      SELECT
+        institute,
+        section,
+        session_type,
+        session_status,
+        report_date,
+        session_id,
+        ARRAY_AGG(course_candidate ORDER BY occurrences DESC, course_candidate LIMIT 1)[OFFSET(0)] AS course
+      FROM (
+        SELECT
+          institute,
+          section,
+          session_type,
+          session_status,
+          report_date,
+          session_id,
+          course_candidate,
+          COUNT(*) AS occurrences
+        FROM schedule_base
+        GROUP BY institute, section, session_type, session_status, report_date, session_id, course_candidate
+      )
+      GROUP BY institute, section, session_type, session_status, report_date, session_id
+    ),
+    roster AS (
+      SELECT
+        u.institute_name AS institute,
+        ${getSectionExpression('u')} AS section,
+        COUNT(DISTINCT user_id) AS students
+      FROM ${usersTable} u
+      WHERE TRIM(COALESCE(u.institute_name, '')) != ''
+      GROUP BY institute, section
     )
     SELECT
-      COALESCE(content.course_title, ${courseExpression}) AS course,
-      u.institute_name AS institute,
-      ${sectionExpression} AS section,
-      ${sessionTypeExpression} AS session_type,
-      COUNT(DISTINCT a.question_set_id) AS sessions,
-      COUNT(DISTINCT a.user_id) AS students,
+      sc.course AS course,
+      sc.institute AS institute,
+      sc.section AS section,
+      sc.session_type AS session_type,
+      COUNT(DISTINCT IF(sc.session_status = 'COMPLETED', sc.session_id, NULL)) AS sessions,
+      COALESCE(r.students, 0) AS students,
       ROUND(
         100 * SAFE_DIVIDE(
-          COUNTIF(a.submission_datetime IS NOT NULL OR a.evaluation_result IS NOT NULL),
-          COUNT(*)
+          COUNT(DISTINCT IF(sc.session_status = 'COMPLETED', sc.session_id, NULL)),
+          COUNT(DISTINCT sc.session_id)
         ),
         2
       ) AS completion,
-      ROUND(AVG(COALESCE(CAST(a.time_spent AS FLOAT64), 0)), 2) AS avg_time,
-      APPROX_QUANTILES(COALESCE(CAST(a.time_spent AS FLOAT64), 0), 100)[OFFSET(80)] AS p80_time,
+      0 AS avg_time,
+      0 AS p80_time,
       @selectedBatch AS batch,
       @selectedSemester AS semester,
-      CAST(MAX(${dateExpr}) AS STRING) AS report_date
-    FROM ${semesterTable} a
-    JOIN users u USING (user_id)
-    LEFT JOIN content ON CAST(a.question_set_id AS STRING) = content.unit_id
-    WHERE ${whereClause}
-    GROUP BY course, institute, section, session_type
+      CAST(MAX(sc.report_date) AS STRING) AS report_date
+    FROM session_course sc
+    LEFT JOIN roster r
+      ON r.institute = sc.institute
+      AND r.section = sc.section
+    GROUP BY course, institute, section, session_type, students
+    HAVING sessions > 0
     ORDER BY institute, section, course
   `;
 

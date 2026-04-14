@@ -377,13 +377,27 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
                     {metrics.courses.map((course) => {
                       const displayName = course;
                       const cd = metrics.courseGroups[course] || [];
-                      const l = cd.find(d => d.session_type === 'LECTURE');
-                      const p = cd.find(d => d.session_type === 'PRACTICE');
-                      const e = cd.find(d => d.session_type === 'EXAM');
+                      const summarizeType = (sessionType) => {
+                        const rows = cd.filter(d => d.session_type === sessionType);
+                        if (!rows.length) return null;
+                        const totalSessions = rows.reduce((sum, row) => sum + (row.sessions || 0), 0);
+                        const totalAvgTime = rows.reduce((sum, row) => sum + (row.avg_time || 0), 0);
+                        const totalP80Time = rows.reduce((sum, row) => sum + (row.p80_time || 0), 0);
+                        const avgCompletion = rows.reduce((sum, row) => sum + (row.completion || 0), 0) / rows.length;
+                        return {
+                          sessions: totalSessions,
+                          completion: avgCompletion,
+                          avg_time: totalAvgTime,
+                          p80_time: totalP80Time,
+                        };
+                      };
+                      const l = summarizeType('LECTURE');
+                      const p = summarizeType('PRACTICE');
+                      const e = summarizeType('EXAM');
                       const lc = l?.sessions || 0, pc = p?.sessions || 0, ec = e?.sessions || 0;
                       const total = lc + pc + ec;
-                      const avgT = cd.reduce((s, d) => s + d.avg_time, 0);
-                      const p80T = cd.reduce((s, d) => s + d.p80_time, 0);
+                      const avgT = cd.reduce((s, d) => s + (d.avg_time || 0), 0);
+                      const p80T = cd.reduce((s, d) => s + (d.p80_time || 0), 0);
                       const ca = assessmentMetrics?.courses.find(c => c.name === displayName);
                       return (
                         <tr key={course} className={`transition-colors ${tableRowHover}`}>

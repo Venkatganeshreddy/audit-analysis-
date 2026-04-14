@@ -4,9 +4,7 @@ React + Vite dashboard with an Express BigQuery backend.
 
 ## BigQuery Setup
 
-The backend is configured to read from a single BigQuery source table:
-
-`kossip-helpers.content_bases_metabase.all_users_question_attempt_details_for_question_set_units`
+The backend reads from the configured BigQuery dataset and derives the dashboard from schedule, roster, content, and assessment tables.
 
 Use the server env file to configure the connection:
 
@@ -19,6 +17,7 @@ Expected server variables:
 
 - `BQ_PROJECT_ID`: Google Cloud project id
 - `BQ_TABLE`: BigQuery table in `dataset.table` or `project.dataset.table` format
+- `BQ_SCHEDULE_TABLE`: offline section schedule table used for delivered-session counts
 - `GOOGLE_APPLICATION_CREDENTIALS`: path to the local service account JSON file
 
 `server/service-account-key.json` is ignored by git and should stay local.
@@ -46,9 +45,9 @@ Backend default URL: `http://localhost:3001`
 
 ## Backend Behavior
 
-The configured BigQuery table stores question-attempt data, not semester-report rows. The backend now derives dashboard-friendly summary datasets from that raw table for the existing UI:
+The backend derives dashboard-friendly summary datasets from multiple raw tables in the dataset:
 
-- `POST /api/bigquery/semester`: aggregated question-set summary rows
+- `POST /api/bigquery/semester`: section-schedule summary rows for delivered sessions and class size
 - `POST /api/bigquery/assessment`: aggregated assessment-style summary rows
 - `GET /api/bigquery/status`: connection check plus active project, dataset, and table
 - `POST /api/bigquery/query`: ad-hoc `SELECT` queries
