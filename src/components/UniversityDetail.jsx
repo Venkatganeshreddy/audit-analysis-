@@ -97,19 +97,19 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
 
   // Theme helpers
   const pageBg = 'ui-shell';
-  const cardBg = isDark ? 'bg-slate-900/75 border-white/10' : 'bg-white/95 border-teal-100';
-  const headingColor = isDark ? 'text-slate-200' : 'text-gray-700';
-  const subColor = isDark ? 'text-slate-400' : 'text-gray-600';
+  const cardBg = 'panel-surface';
+  const headingColor = isDark ? 'text-slate-100' : 'text-slate-900';
+  const subColor = isDark ? 'text-slate-300' : 'text-slate-600';
   const muted = isDark ? 'text-slate-500' : 'text-gray-500';
   const bodyText = isDark ? 'text-slate-100' : 'text-gray-900';
   const borderColor = isDark ? 'border-slate-700' : 'border-gray-100';
-  const statAccentBg = isDark ? 'bg-blue-900/30 border-blue-800' : 'bg-blue-50 border-blue-100';
-  const statGrayBg = isDark ? 'bg-slate-800' : 'bg-gray-100';
-  const completionBg = isDark ? 'bg-slate-800' : 'bg-gray-50';
+  const statAccentBg = 'panel-muted';
+  const statGrayBg = 'panel-muted';
+  const completionBg = 'panel-muted';
   const tableBg = isDark ? 'bg-slate-900/85' : 'bg-white';
   const tableHeaderBg = isDark ? 'bg-slate-800' : 'bg-gray-50';
   const tableHeaderText = isDark ? 'text-slate-400' : 'text-gray-500';
-  const tableRowHover = isDark ? 'hover:bg-slate-700/50' : 'hover:bg-indigo-50/30';
+  const tableRowHover = isDark ? 'hover:bg-slate-800/60' : 'hover:bg-slate-50';
   const tableRowDivide = isDark ? 'divide-slate-700' : 'divide-gray-50';
   const tableCellSticky = isDark
     ? 'bg-slate-900/95 hover:bg-slate-800/90 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]'
@@ -253,7 +253,7 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
     <AnimatedView>
       <div className={`min-h-screen ${pageBg} p-4 sm:p-5`}>
         {/* Top bar */}
-        <div className="hero-panel max-w-7xl mx-auto mb-5 rounded-2xl p-4 sm:p-5">
+        <div className="hero-panel max-w-7xl mx-auto mb-5 rounded-2xl p-5 sm:p-6">
           <button
             onClick={onBack}
             onMouseDown={addRipple}
@@ -274,7 +274,7 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
                   <select
                     value={selectedSection}
                     onChange={(e) => setSelectedSection(e.target.value)}
-                    className={`${isDark ? 'styled-select-dark' : 'styled-select'} text-base font-semibold border rounded-lg px-2 py-1 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-300 hover:border-indigo-300 transition-colors min-h-[36px] ${
+                    className={`${isDark ? 'styled-select-dark' : 'styled-select'} text-base font-semibold border rounded-lg px-2 py-1 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-300 hover:border-blue-300 transition-colors min-h-[36px] ${
                       isDark
                         ? 'bg-slate-700 text-slate-100 border-slate-600'
                         : 'bg-transparent text-gray-800 border-gray-200'
@@ -306,10 +306,8 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
         <div className="max-w-7xl mx-auto lg:hidden mb-4">
           <button
             onClick={() => setSidebarExpanded(!sidebarExpanded)}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl shadow-sm border text-sm font-medium touch-target ${
-              isDark
-                ? 'bg-slate-800 border-slate-700 text-slate-300'
-                : 'bg-white border-gray-100 text-gray-700'
+            className={`panel-surface w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium touch-target ${
+              isDark ? 'text-slate-300' : 'text-gray-700'
             }`}
           >
             <span className="flex items-center gap-2">
@@ -326,7 +324,7 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
             </svg>
           </button>
           {sidebarExpanded && (
-            <div className={`mt-2 rounded-xl shadow-sm p-5 border backdrop-blur-sm animate-fade-slide-up ${cardBg}`}>
+            <div className={`mt-2 rounded-xl p-5 animate-fade-slide-up ${cardBg}`}>
               <SidebarContent />
             </div>
           )}
@@ -335,7 +333,7 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
         <div className="max-w-7xl mx-auto flex gap-5">
           {/* Desktop sidebar */}
           <div className="hidden lg:block w-64 flex-shrink-0">
-            <div className={`rounded-xl shadow-sm p-5 sticky top-5 border backdrop-blur-sm ${cardBg}`}>
+            <div className={`rounded-xl p-5 sticky top-5 ${cardBg}`}>
               <SidebarContent />
             </div>
           </div>
@@ -344,7 +342,7 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
             <div className="grid grid-cols-12 gap-5">
               {/* Sessions mix */}
               <div className="col-span-12 md:col-span-3 space-y-5">
-                <div className={`rounded-xl p-5 shadow-sm border backdrop-blur-sm ${cardBg}`}>
+                <div className={`rounded-xl p-5 ${cardBg}`}>
                   <h3 className={`text-sm font-semibold mb-4 ${headingColor}`}>Sessions mix</h3>
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
@@ -361,10 +359,10 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
                     </div>
                   </div>
                 </div>
-                <div className={`rounded-xl p-5 border ${statAccentBg}`}>
-                  <p className={`text-xs uppercase font-medium mb-1 ${muted}`}>TOTAL SESSIONS</p>
-                  <p className={`text-4xl font-bold ${bodyText}`}>{r2(metrics.totalSessions)}</p>
-                </div>
+          <div className={`rounded-xl p-5 ${statAccentBg}`}>
+            <p className={`text-xs uppercase font-medium mb-1 ${muted}`}>TOTAL SESSIONS</p>
+            <p className={`text-4xl font-bold ${bodyText}`}>{r2(metrics.totalSessions)}</p>
+          </div>
                 <div className={`rounded-xl p-5 ${statGrayBg}`}>
                   <p className={`text-xs uppercase font-medium mb-1 ${muted}`}>CLASS SIZE</p>
                   <p className={`text-4xl font-bold ${bodyText}`}>{r2(metrics.classSize)}</p>
@@ -373,7 +371,7 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
 
               {/* Completion */}
               <div className="col-span-12 md:col-span-5 space-y-5">
-                <div className={`rounded-xl p-5 shadow-sm border backdrop-blur-sm ${cardBg}`}>
+                <div className={`rounded-xl p-5 ${cardBg}`}>
                   <h3 className={`text-sm font-semibold mb-4 ${headingColor}`}>Completion</h3>
                   <div className="grid grid-cols-3 gap-3">
                     <div className={`rounded-xl p-4 text-center ${completionBg}`}>
@@ -390,7 +388,7 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
                     </div>
                   </div>
                 </div>
-                <div className={`rounded-xl p-5 shadow-sm border backdrop-blur-sm ${cardBg}`}>
+                <div className={`rounded-xl p-5 ${cardBg}`}>
                   <div className="flex items-center gap-5">
                     <div className="relative">
                       <DonutChart value={metrics.examCompletion} size={90} strokeWidth={10} color="#f59e0b" />
@@ -399,7 +397,7 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
                       </div>
                     </div>
                     <div>
-                      <h4 className={`text-lg font-semibold ${bodyText}`}>Exam</h4>
+                      <h4 className={`text-lg font-semibold ${bodyText}`}>Exam Completion</h4>
                     </div>
                   </div>
                 </div>
@@ -407,7 +405,7 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
 
               {/* Workload */}
               <div className="col-span-12 md:col-span-4">
-                <div className={`rounded-xl p-5 shadow-sm h-full border backdrop-blur-sm ${cardBg}`}>
+                <div className={`rounded-xl p-5 h-full ${cardBg}`}>
                   <h3 className={`text-sm font-semibold mb-4 ${headingColor}`}>Workload (per-student)</h3>
                   <WorkloadBar label="Avg" value={metrics.avgTime} maxValue={500} color="#ef4444" />
                   <WorkloadBar label="P80" value={metrics.p80Time} maxValue={500} color="#f97316" />
@@ -419,10 +417,10 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
 
             {/* Course-wise Breakdown */}
             <div
-              className={`mt-5 rounded-xl shadow-sm overflow-hidden animate-fade-slide-up border ${isDark ? 'border-white/10 bg-slate-900/70' : 'border-gray-100 bg-white/95'}`}
+              className={`mt-5 rounded-xl overflow-hidden animate-fade-slide-up ${cardBg}`}
               style={{ animationDelay: '0.12s' }}
             >
-              <div className={`px-5 py-4 border-b flex items-center justify-between ${isDark ? 'border-slate-700 bg-slate-800' : 'border-gray-100 bg-white'}`}>
+              <div className={`px-5 py-4 border-b flex items-center justify-between ${isDark ? 'border-slate-700 bg-slate-900/40' : 'border-slate-200 bg-white/70'}`}>
                 <div>
                   <h3 className={`text-sm font-semibold ${headingColor}`}>Course-wise Breakdown</h3>
                   <p className={`mt-0.5 text-xs ${muted}`}>
@@ -457,22 +455,22 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
                             {row.displayName}
                           </td>
                           <td className="px-2 py-3 text-center">
-                            <span className={`inline-flex items-center justify-center w-8 h-6 text-xs font-bold rounded ${isDark ? 'bg-blue-900/40 text-blue-300' : 'bg-blue-100 text-blue-700'}`}>{r2(row.lc)}</span>
+                            <span className="panel-muted inline-flex items-center justify-center w-10 h-7 text-xs font-bold rounded">{r2(row.lc)}</span>
                           </td>
                           <td className="px-2 py-3 text-center">
-                            <span className={`inline-flex items-center justify-center w-8 h-6 text-xs font-bold rounded ${isDark ? 'bg-emerald-900/40 text-emerald-300' : 'bg-emerald-100 text-emerald-700'}`}>{r2(row.pc)}</span>
+                            <span className="panel-muted inline-flex items-center justify-center w-10 h-7 text-xs font-bold rounded">{r2(row.pc)}</span>
                           </td>
                           <td className="px-2 py-3 text-center">
-                            <span className={`inline-flex items-center justify-center w-8 h-6 text-xs font-bold rounded ${isDark ? 'bg-amber-900/40 text-amber-300' : 'bg-amber-100 text-amber-700'}`}>{r2(row.ec)}</span>
+                            <span className="panel-muted inline-flex items-center justify-center w-10 h-7 text-xs font-bold rounded">{r2(row.ec)}</span>
                           </td>
                           <td className={`px-2 py-3 text-sm text-center font-semibold ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>{r2(row.total)}</td>
                           <td className={`px-2 py-3 text-center text-sm ${isDark ? 'text-slate-300' : ''}`}>{row.l ? `${row.l.completion.toFixed(1)}%` : '—'}</td>
                           <td className={`px-2 py-3 text-center text-sm ${isDark ? 'text-slate-300' : ''}`}>{row.p ? `${row.p.completion.toFixed(1)}%` : '—'}</td>
                           <td className={`px-2 py-3 text-center text-sm ${isDark ? 'text-slate-300' : ''}`}>{row.e ? `${row.e.completion.toFixed(1)}%` : '—'}</td>
-                          <td className={`px-2 py-3 text-center text-sm font-semibold ${isDark ? 'text-purple-300 bg-purple-900/20' : 'text-purple-700 bg-purple-50/30'}`}>
+                          <td className={`px-2 py-3 text-center text-sm font-semibold ${bodyText}`}>
                             {row.ca ? `${(row.ca.avgScore * 100).toFixed(1)}%` : '—'}
                           </td>
-                          <td className={`px-2 py-3 text-center text-sm font-semibold ${isDark ? 'text-indigo-300 bg-indigo-900/20' : 'text-indigo-700 bg-indigo-50/30'}`}>
+                          <td className={`px-2 py-3 text-center text-sm font-semibold ${bodyText}`}>
                             {row.ca ? `${row.ca.avgParticipation.toFixed(0)}` : '—'}
                           </td>
                           <td className={`px-2 py-3 text-sm text-center ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>{row.avgT.toFixed(1)}h</td>

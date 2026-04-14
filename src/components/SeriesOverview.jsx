@@ -9,36 +9,37 @@ export default function SeriesOverview({ seriesData, onSelectSeries, analysisTyp
 
   const pageBg = 'ui-shell';
   const headingColor = isDark ? 'text-slate-100' : 'text-gray-900';
-  const subColor = isDark ? 'text-slate-400' : 'text-gray-500';
-  const muted = isDark ? 'text-slate-500' : 'text-gray-400';
+  const subColor = isDark ? 'text-slate-300' : 'text-slate-600';
+  const muted = isDark ? 'text-slate-400' : 'text-slate-500';
   const infoBg = isDark
-    ? 'bg-amber-900/30 border-amber-700/50'
-    : 'bg-amber-50 border-amber-200';
-  const infoHeading = isDark ? 'text-amber-300' : 'text-amber-800';
-  const infoText = isDark ? 'text-amber-400' : 'text-amber-700';
-  const infoIconBg = isDark ? 'bg-amber-700/50' : 'bg-amber-200';
-  const infoIconColor = isDark ? 'text-amber-300' : 'text-amber-700';
+    ? 'panel-surface text-slate-200'
+    : 'panel-surface text-slate-700';
+  const infoHeading = isDark ? 'text-slate-100' : 'text-slate-900';
+  const infoText = isDark ? 'text-slate-300' : 'text-slate-600';
+  const infoIconBg = isDark ? 'bg-slate-800' : 'bg-slate-100';
+  const infoIconColor = isDark ? 'text-slate-200' : 'text-slate-700';
 
   return (
     <AnimatedView>
       <div className={`min-h-screen ${pageBg} p-4 sm:p-6`}>
         <div className="max-w-6xl mx-auto">
-          <div className="hero-panel text-center mb-6 sm:mb-8 rounded-3xl p-5 sm:p-7 animate-fade-slide-up">
+          <div className="hero-panel mb-6 rounded-3xl p-6 sm:mb-8 sm:p-8 animate-fade-slide-up">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-blue-100/80">Overview</p>
             <h1 className={`text-2xl sm:text-3xl font-bold mb-2 ${isDark ? 'text-white' : headingColor}`}>University Series Overview</h1>
-            <p className={`mb-1 ${subColor}`}>{semester} • {batch}</p>
-            {filters?.startDate && filters?.endDate && (
-              <p className={`text-sm mb-1 ${muted}`}>📅 {filters.startDate} → {filters.endDate}</p>
-            )}
-            <p className={`text-sm ${muted}`}>
-              Universities grouped by{' '}
-              {analysisType === 'design'
-                ? 'allotted hours (design perspective)'
-                : 'average sessions delivered'}
-            </p>
+            <div className="flex flex-wrap gap-2 justify-center mt-4">
+              <span className="dashboard-chip border-white/16 bg-white/10 text-white">{semester}</span>
+              <span className="dashboard-chip border-white/16 bg-white/10 text-white">{batch}</span>
+              {filters?.startDate && filters?.endDate && (
+                <span className="dashboard-chip border-white/16 bg-white/10 text-white">{filters.startDate} to {filters.endDate}</span>
+              )}
+              <span className="dashboard-chip border-white/16 bg-white/10 text-white">
+                {analysisType === 'design' ? 'Design perspective' : 'Delivery perspective'}
+              </span>
+            </div>
           </div>
 
           <div
-            className={`max-w-4xl mx-auto mb-6 sm:mb-8 rounded-2xl p-4 border animate-fade-slide-up ${infoBg}`}
+            className={`max-w-4xl mx-auto mb-6 sm:mb-8 rounded-2xl p-5 animate-fade-slide-up ${infoBg}`}
             style={{ animationDelay: '0.05s' }}
           >
             <div className="flex items-start gap-3">
@@ -71,8 +72,8 @@ export default function SeriesOverview({ seriesData, onSelectSeries, analysisTyp
                   key={series.name}
                   onClick={() => onSelectSeries(series.name)}
                   onMouseDown={addRipple}
-                  className={`card-enter ripple-btn rounded-2xl shadow-lg overflow-hidden cursor-pointer transform transition-all duration-200 hover:-translate-y-1 hover:shadow-xl active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-teal-500 ${
-                    isDark ? 'bg-slate-900/75 border border-white/10' : 'bg-white/95 border border-teal-100'
+                  className={`card-enter ripple-btn rounded-2xl overflow-hidden cursor-pointer transform transition-all duration-200 hover:-translate-y-1 hover:shadow-lg active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                    isDark ? 'panel-surface' : 'panel-surface'
                   }`}
                   tabIndex={0}
                   role="button"
@@ -97,19 +98,19 @@ export default function SeriesOverview({ seriesData, onSelectSeries, analysisTyp
 
                   <div className="p-5">
                     <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
-                      <div className={`rounded-lg p-2 sm:p-3 text-center ${isDark ? 'bg-slate-800' : 'bg-gray-50'}`}>
+                      <div className={`panel-muted rounded-lg p-2 sm:p-3 text-center`}>
                         <p className={`text-[10px] sm:text-xs ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Avg Allotted</p>
                         <p className="text-lg sm:text-xl font-bold text-amber-600">
                           {data.avgAllottedHours ? data.avgAllottedHours.toFixed(0) : '—'}
                         </p>
                       </div>
-                      <div className={`rounded-lg p-2 sm:p-3 text-center ${isDark ? 'bg-slate-800' : 'bg-gray-50'}`}>
+                      <div className={`panel-muted rounded-lg p-2 sm:p-3 text-center`}>
                         <p className={`text-[10px] sm:text-xs ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Avg University Delivery</p>
                         <p className={`text-lg sm:text-xl font-bold ${isDark ? 'text-slate-100' : 'text-gray-800'}`}>
                           {data.avgSessions.toFixed(0)}
                         </p>
                       </div>
-                      <div className={`rounded-lg p-2 sm:p-3 text-center ${isDark ? 'bg-slate-800' : 'bg-gray-50'}`}>
+                      <div className={`panel-muted rounded-lg p-2 sm:p-3 text-center`}>
                         <p className={`text-[10px] sm:text-xs ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Total Students</p>
                         <p className={`text-lg sm:text-xl font-bold ${isDark ? 'text-slate-100' : 'text-gray-800'}`}>
                           {data.totalStudents}
@@ -118,17 +119,17 @@ export default function SeriesOverview({ seriesData, onSelectSeries, analysisTyp
                     </div>
 
                     {data.avgAssessmentScore !== null && (
-                      <div className={`rounded-lg p-3 mb-4 border ${isDark ? 'bg-purple-900/30 border-purple-700/50' : 'bg-purple-50 border-purple-100'}`}>
+                      <div className={`panel-muted rounded-lg p-3 mb-4`}>
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className={`text-xs font-medium ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>Avg Score</p>
-                            <p className={`text-2xl font-bold ${isDark ? 'text-purple-300' : 'text-purple-700'}`}>
+                            <p className={`text-xs font-medium ${muted}`}>Avg Score</p>
+                            <p className={`text-2xl font-bold ${headingColor}`}>
                               {(data.avgAssessmentScore * 100).toFixed(1)}%
                             </p>
                           </div>
                           <div className="text-right">
-                            <p className={`text-xs font-medium ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>Avg Participation</p>
-                            <p className={`text-2xl font-bold ${isDark ? 'text-purple-300' : 'text-purple-700'}`}>
+                            <p className={`text-xs font-medium ${muted}`}>Avg Participation</p>
+                            <p className={`text-2xl font-bold ${headingColor}`}>
                               {data.avgParticipation.toFixed(0)}
                             </p>
                           </div>
@@ -169,7 +170,7 @@ export default function SeriesOverview({ seriesData, onSelectSeries, analysisTyp
                   </div>
 
                   <div className="px-5 pb-4">
-                    <button className={`w-full py-2 rounded-lg text-sm font-medium transition-colors touch-target ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-200' : 'bg-teal-50 hover:bg-teal-100 text-teal-700'}`}>
+                    <button className="dashboard-button-secondary w-full py-2 rounded-lg text-sm font-medium transition-colors touch-target">
                       View Details →
                     </button>
                   </div>

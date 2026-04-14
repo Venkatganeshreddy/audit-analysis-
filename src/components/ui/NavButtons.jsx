@@ -12,10 +12,10 @@ export default function NavButtons({ onSwitchView, onReset }) {
       <button
         onClick={onSwitchView}
         onMouseDown={addRipple}
-        className={`ripple-btn touch-target flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium shadow-lg transition active:scale-95 sm:text-sm ${
+        className={`ripple-btn touch-target flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium transition active:scale-95 sm:text-sm ${
           isDark
-            ? 'border-teal-400/25 bg-slate-900/80 text-slate-200 hover:bg-slate-800'
-            : 'border-teal-200 bg-white/95 text-slate-700 hover:bg-teal-50'
+            ? 'border-white/10 bg-slate-900/88 text-slate-200 hover:bg-slate-800'
+            : 'border-slate-200 bg-white/96 text-slate-700 hover:bg-slate-50 shadow-sm'
         }`}
       >
         <svg className="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -27,10 +27,10 @@ export default function NavButtons({ onSwitchView, onReset }) {
       <button
         onClick={onReset}
         onMouseDown={addRipple}
-        className={`ripple-btn touch-target flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium shadow-lg transition active:scale-95 sm:text-sm ${
+        className={`ripple-btn touch-target flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium transition active:scale-95 sm:text-sm ${
           isDark
-            ? 'border-sky-400/20 bg-slate-900/80 text-slate-200 hover:bg-slate-800'
-            : 'border-sky-200 bg-white/95 text-slate-700 hover:bg-sky-50'
+            ? 'border-white/10 bg-slate-900/88 text-slate-200 hover:bg-slate-800'
+            : 'border-slate-200 bg-white/96 text-slate-700 hover:bg-slate-50 shadow-sm'
         }`}
       >
         <svg className="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
