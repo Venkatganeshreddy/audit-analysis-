@@ -299,6 +299,22 @@ COURSE_ALIAS_GROUPS_BY_SEMESTER = {
 }
 
 
+NON_CORE_COURSES_BY_SEMESTER = {
+    "Semester 1": set(),
+    "Semester 2": {
+        "Assessment",
+        "Environmental Science",
+        "Engineering Drawing",
+        "Human Values & Ethics",
+        "Indian Constitution",
+        "Indian Knowledge System",
+        "Language Elective",
+        "Talent Development Program",
+        "Yoga",
+    },
+}
+
+
 def get_config(key: str, default: str = "") -> str:
     if key in st.secrets:
         return str(st.secrets[key])
@@ -781,15 +797,15 @@ def build_university_metrics(data_df: pd.DataFrame, assessment_df: pd.DataFrame,
         course_records.append(
             {
                 "Course": course_name,
-                "Lec": round(lecture["sessions"], 2) if lecture else 0,
-                "Prac": round(practice["sessions"], 2) if practice else 0,
-                "Exam": round(exam["sessions"], 2) if exam else 0,
-                "Total": round((lecture["sessions"] if lecture else 0) + (practice["sessions"] if practice else 0) + (exam["sessions"] if exam else 0), 2),
-                "Lec %": round(lecture["completion"], 1) if lecture else None,
-                "Prac %": round(practice["completion"], 1) if practice else None,
+                "Lecture Sessions": round(lecture["sessions"], 2) if lecture else 0,
+                "Practice Sessions": round(practice["sessions"], 2) if practice else 0,
+                "Exam Sessions": round(exam["sessions"], 2) if exam else 0,
+                "Total Sessions": round((lecture["sessions"] if lecture else 0) + (practice["sessions"] if practice else 0) + (exam["sessions"] if exam else 0), 2),
+                "Lecture %": round(lecture["completion"], 1) if lecture else None,
+                "Practice %": round(practice["completion"], 1) if practice else None,
                 "Exam %": round(exam["completion"], 1) if exam else None,
                 "Score %": round(float(assessment_row["avg_score"].mean()) * 100, 1) if not assessment_row.empty else None,
-                "Particip #": round(float(assessment_row["avg_participation"].mean()), 1) if not assessment_row.empty else None,
+                "Participation #": round(float(assessment_row["avg_participation"].mean()), 1) if not assessment_row.empty else None,
             }
         )
 
@@ -810,25 +826,203 @@ def build_university_metrics(data_df: pd.DataFrame, assessment_df: pd.DataFrame,
     }
 
 
+def filter_course_table(course_table: pd.DataFrame, semester: str):
+    if course_table.empty:
+        return course_table.copy(), 0
+    filtered = course_table.copy()
+    excluded_courses = NON_CORE_COURSES_BY_SEMESTER.get(semester, set())
+    if excluded_courses:
+        filtered = filtered[~filtered["Course"].isin(excluded_courses)].copy()
+    hidden_count = len(course_table) - len(filtered)
+    if filtered.empty:
+        filtered = course_table.copy()
+        hidden_count = 0
+    filtered = filtered.sort_values(["Total Sessions", "Course"], ascending=[False, True]).reset_index(drop=True)
+    return filtered, hidden_count
+
+
+def format_metric_value(value, decimals: int = 1, suffix: str = "", empty: str = "--") -> str:
+    if value is None or pd.isna(value):
+        return empty
+    if isinstance(value, (int, float)):
+        if decimals == 0:
+            return f"{int(round(value)):,}{suffix}"
+        return f"{value:,.{decimals}f}{suffix}"
+    return f"{value}{suffix}"
+
+
+def build_last_updated_label(*frames: pd.DataFrame) -> str:
+    timestamps = []
+    for frame in frames:
+        if frame.empty or "report_date" not in frame.columns:
+            continue
+        parsed = pd.to_datetime(frame["report_date"], errors="coerce").dropna()
+        if not parsed.empty:
+            timestamps.append(parsed.max())
+    if not timestamps:
+        return "Not available"
+    return max(timestamps).strftime("%d %b %Y")
+
+
+def inject_custom_css():
+    st.markdown(
+        """
+        <style>
+            .stApp {
+                background: linear-gradient(180deg, #f8fafc 0%, #eef4ff 100%);
+                color: #0f172a;
+            }
+            [data-testid="stSidebar"] {
+                background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
+                border-right: 1px solid rgba(148, 163, 184, 0.2);
+            }
+            [data-testid="stSidebar"] * {
+                color: #e2e8f0;
+            }
+            [data-testid="stSidebar"] .stButton button {
+                background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+                border: none;
+                color: white;
+                font-weight: 600;
+            }
+            .hero-card {
+                background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 55%, #38bdf8 100%);
+                border-radius: 24px;
+                color: white;
+                padding: 28px 30px;
+                box-shadow: 0 20px 45px rgba(15, 23, 42, 0.18);
+                margin-bottom: 12px;
+            }
+            .hero-eyebrow {
+                font-size: 0.8rem;
+                font-weight: 700;
+                letter-spacing: 0.12em;
+                opacity: 0.8;
+                text-transform: uppercase;
+                margin-bottom: 8px;
+            }
+            .hero-title {
+                font-size: 2rem;
+                font-weight: 700;
+                margin: 0;
+            }
+            .hero-subtitle {
+                margin-top: 10px;
+                font-size: 0.98rem;
+                line-height: 1.6;
+                max-width: 900px;
+                color: rgba(255, 255, 255, 0.88);
+            }
+            .hero-meta {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                margin-top: 18px;
+            }
+            .hero-pill {
+                background: rgba(255, 255, 255, 0.14);
+                border: 1px solid rgba(255, 255, 255, 0.16);
+                border-radius: 999px;
+                padding: 8px 12px;
+                font-size: 0.85rem;
+                font-weight: 600;
+            }
+            .section-heading {
+                margin: 6px 0 2px 0;
+                font-size: 1.2rem;
+                font-weight: 700;
+                color: #0f172a;
+            }
+            .section-caption {
+                color: #475569;
+                margin-bottom: 12px;
+                font-size: 0.94rem;
+            }
+            .metric-card {
+                background: rgba(255, 255, 255, 0.92);
+                border: 1px solid rgba(148, 163, 184, 0.22);
+                border-radius: 20px;
+                padding: 18px 18px 16px 18px;
+                box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+                min-height: 118px;
+            }
+            .metric-label {
+                color: #475569;
+                font-size: 0.86rem;
+                font-weight: 600;
+                margin-bottom: 10px;
+            }
+            .metric-value {
+                color: #0f172a;
+                font-size: 1.8rem;
+                font-weight: 700;
+                line-height: 1.1;
+                margin-bottom: 8px;
+            }
+            .metric-help {
+                color: #64748b;
+                font-size: 0.8rem;
+                line-height: 1.5;
+            }
+            .info-card {
+                background: rgba(255, 255, 255, 0.88);
+                border: 1px solid rgba(148, 163, 184, 0.22);
+                border-radius: 18px;
+                padding: 14px 16px;
+                color: #334155;
+                margin-bottom: 12px;
+            }
+            div[data-testid="stDataFrame"] {
+                border: 1px solid rgba(148, 163, 184, 0.24);
+                border-radius: 18px;
+                overflow: hidden;
+                box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+                background: rgba(255, 255, 255, 0.94);
+            }
+            div[data-testid="stTabs"] button {
+                font-weight: 600;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_section_header(title: str, caption: str):
+    st.markdown(f"<div class='section-heading'>{title}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='section-caption'>{caption}</div>", unsafe_allow_html=True)
+
+
 def render_metric_row(items):
     columns = st.columns(len(items))
     for column, item in zip(columns, items):
-        column.metric(item["label"], item["value"])
+        help_text = f"<div class='metric-help'>{item.get('help', '')}</div>" if item.get("help") else ""
+        column.markdown(
+            f"""
+            <div class="metric-card">
+                <div class="metric-label">{item['label']}</div>
+                <div class="metric-value">{item['value']}</div>
+                {help_text}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
 
 def main():
     st.set_page_config(page_title="NIAT Analytics Streamlit", layout="wide")
-    st.title("NIAT Analytics")
-    st.caption("Streamlit version of the audit dashboard using the corrected BigQuery schedule-based semester data.")
+    inject_custom_css()
 
     with st.sidebar:
-        st.header("Filters")
+        st.markdown("## Audit Analysis")
+        st.caption("Live Streamlit dashboard for delivery and assessment tracking.")
         batch = st.selectbox("Batch", ["NIAT 24", "NIAT 25", "NIAT 26"], index=1)
         semester = st.selectbox("Semester", [f"Semester {index}" for index in range(1, 9)], index=0)
-        analysis_type = st.radio("Analysis Type", ["design", "delivered"], format_func=lambda value: value.title())
-        load_clicked = st.button("Load Data", type="primary")
-        st.markdown("**Deployment note**")
-        st.caption("Add your BigQuery credentials in Streamlit Cloud secrets before deploying.")
+        analysis_type = st.radio("Grouping Logic", ["design", "delivered"], format_func=lambda value: value.title())
+        load_clicked = st.button("Load latest data", type="primary", use_container_width=True)
+        st.markdown("---")
+        st.caption("Design groups universities by planned hours. Delivered groups them by completed sessions.")
+        st.caption("Streamlit Cloud must have BigQuery credentials in app secrets.")
 
     if load_clicked or "semester_df" not in st.session_state or st.session_state.get("batch") != batch or st.session_state.get("semester") != semester:
         with st.spinner("Fetching data from BigQuery..."):
@@ -843,7 +1037,7 @@ def main():
     assessment_df = st.session_state.get("assessment_df", pd.DataFrame())
 
     if semester_df.empty:
-        st.warning("No semester data returned. Check your secrets or selected semester.")
+        st.warning("No semester data returned. Check the selected filters and Streamlit Cloud secrets.")
         st.stop()
 
     series_data = calculate_series_data(semester_df, assessment_df, analysis_type, semester)
@@ -853,86 +1047,198 @@ def main():
         st.stop()
 
     series_rows = []
+    all_universities = []
     for series in SERIES_RANGES:
         data = series_data[series["name"]]
         if not data["universities"]:
             continue
+        all_universities.extend(data["universities"])
         series_rows.append(
             {
                 "Series": series["name"],
                 "Universities": len(data["universities"]),
-                "Avg Sessions": round(data["avgSessions"], 1),
-                "Avg Class Size": round(data["avgClassSize"], 1),
-                "Overall %": round(data["avgOverallCompletion"], 1),
                 "Students": int(data["totalStudents"]),
+                "Avg Sessions": round(data["avgSessions"], 1),
+                "Avg Delivery %": round(data["avgOverallCompletion"], 1),
                 "Avg Score %": round(data["avgAssessmentScore"] * 100, 1) if data["avgAssessmentScore"] is not None else None,
+                "Avg Allotted Hours": round(data["avgAllottedHours"], 1) if data["avgAllottedHours"] else None,
             }
         )
     series_df = pd.DataFrame(series_rows)
 
+    total_students = int(semester_df.groupby(["institute", "section"])["students"].max().sum()) if not semester_df.empty else 0
+    avg_delivery = sum(item["avgOverallCompletion"] for item in all_universities) / len(all_universities)
+    score_values = [item["avgAssessmentScore"] * 100 for item in all_universities if item["avgAssessmentScore"] is not None]
+    avg_score = sum(score_values) / len(score_values) if score_values else None
+    last_updated = build_last_updated_label(semester_df, assessment_df)
+    analysis_label = "Planned schedule bands" if analysis_type == "design" else "Delivered session bands"
+
+    st.markdown(
+        f"""
+        <div class="hero-card">
+            <div class="hero-eyebrow">Audit Dashboard</div>
+            <h1 class="hero-title">NIAT delivery and assessment view</h1>
+            <div class="hero-subtitle">Cleaned Streamlit layout focused on series performance, university delivery, and course-level completion. Course tables hide non-core subjects where applicable so the breakdown stays readable.</div>
+            <div class="hero-meta">
+                <div class="hero-pill">Batch: {batch}</div>
+                <div class="hero-pill">Semester: {semester}</div>
+                <div class="hero-pill">Grouping: {analysis_label}</div>
+                <div class="hero-pill">Last updated: {last_updated}</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
     render_metric_row(
         [
-            {"label": "Universities", "value": int(semester_df["institute"].nunique())},
-            {"label": "Sections", "value": int(semester_df["section"].nunique())},
-            {"label": "Rows", "value": len(semester_df)},
-            {"label": "Assessment Rows", "value": len(assessment_df)},
+            {"label": "Universities", "value": format_metric_value(semester_df["institute"].nunique(), decimals=0), "help": "Institutions with schedule data in the current view."},
+            {"label": "Sections", "value": format_metric_value(semester_df["section"].nunique(), decimals=0), "help": "Distinct sections covered by the loaded semester data."},
+            {"label": "Students", "value": format_metric_value(total_students, decimals=0), "help": "Summed section roster size using the latest section-level student counts."},
+            {"label": "Avg Delivery %", "value": format_metric_value(avg_delivery, suffix="%"), "help": "Average university delivery across lecture, practice, and exam completion."},
+            {"label": "Avg Score %", "value": format_metric_value(avg_score, suffix="%"), "help": "Average assessment score for universities with assessment data."},
         ]
     )
 
-    st.subheader("Series Overview")
-    st.dataframe(series_df, use_container_width=True, hide_index=True)
+    selected_series = st.selectbox("Series", active_series)
+    series_summary = series_data[selected_series]
+    universities = sorted(series_summary["universities"], key=lambda item: item["name"])
+    selected_university = st.selectbox("University", [item["name"] for item in universities])
+    sections = sorted(semester_df[semester_df["institute"] == selected_university]["section"].dropna().unique().tolist())
+    section_options = ["All Sections"] + sections if sections else ["All Sections"]
+    selected_section_label = st.selectbox("Section", section_options)
+    selected_section = "" if selected_section_label == "All Sections" else selected_section_label
 
-    selected_series = st.selectbox("Select Series", active_series)
-    universities = sorted(series_data[selected_series]["universities"], key=lambda item: item["name"])
     university_rows = pd.DataFrame(
         [
             {
                 "University": item["name"],
                 "Sections": item["sectionCount"],
+                "Allotted Hours": round(item["allottedHours"], 1) if item["allottedHours"] is not None else None,
                 "Avg Sessions": round(item["avgSessions"], 1),
-                "Avg Class Size": round(item["avgClassSize"], 1),
                 "Lecture %": round(item["avgLectureCompletion"], 1),
                 "Practice %": round(item["avgPracticeCompletion"], 1),
                 "Exam %": round(item["avgExamCompletion"], 1),
-                "Overall %": round(item["avgOverallCompletion"], 1),
+                "Avg Delivery %": round(item["avgOverallCompletion"], 1),
                 "Avg Score %": round(item["avgAssessmentScore"] * 100, 1) if item["avgAssessmentScore"] is not None else None,
+                "Participation #": round(item["avgParticipation"], 1) if item["avgParticipation"] is not None else None,
             }
             for item in universities
         ]
-    )
+    ).sort_values(["Avg Delivery %", "University"], ascending=[False, True]).reset_index(drop=True)
 
-    st.subheader(f"Universities in Series {selected_series}")
-    st.dataframe(university_rows, use_container_width=True, hide_index=True)
-
-    selected_university = st.selectbox("Select University", [item["name"] for item in universities])
-    sections = sorted(semester_df[semester_df["institute"] == selected_university]["section"].dropna().unique().tolist())
-    selected_section = st.selectbox("Select Section", sections) if sections else ""
-    dates = get_semester_dates_for_institute(selected_university, semester)
     university_metrics = build_university_metrics(semester_df, assessment_df, selected_university, selected_section, semester)
+    if university_metrics is None:
+        st.warning("No university data available for the current selection.")
+        st.stop()
+    course_table, hidden_courses = filter_course_table(university_metrics["courseTable"], semester)
+    dates = get_semester_dates_for_institute(selected_university, semester)
 
-    st.subheader(f"{selected_university} {selected_section}")
-    if dates:
-        st.caption(f"Semester window: {dates['start']} to {dates['end']}")
+    overview_tab, comparison_tab, detail_tab = st.tabs(["Series Overview", "University Comparison", "Course Breakdown"])
 
-    render_metric_row(
-        [
-            {"label": "Courses", "value": university_metrics["courseCount"]},
-            {"label": "Students", "value": round(university_metrics["classSize"], 1)},
-            {"label": "Total Sessions", "value": round(university_metrics["totalSessions"], 1)},
-            {"label": "Overall Completion %", "value": round(university_metrics["overallCompletion"], 1)},
-        ]
-    )
-    render_metric_row(
-        [
-            {"label": "Lecture", "value": round(university_metrics["lectureCount"], 1)},
-            {"label": "Practice", "value": round(university_metrics["practiceCount"], 1)},
-            {"label": "Exam", "value": round(university_metrics["examCount"], 1)},
-            {"label": "Avg Score %", "value": round(university_metrics["assessmentScore"], 1) if university_metrics["assessmentScore"] is not None else "—"},
-        ]
-    )
+    with overview_tab:
+        render_section_header("Series snapshot", "Each series groups universities by planned or delivered volume based on the selected sidebar logic.")
+        render_metric_row(
+            [
+                {"label": "Selected Series", "value": selected_series, "help": "Current benchmark band used for comparison."},
+                {"label": "Universities in Series", "value": format_metric_value(len(universities), decimals=0), "help": "Institutions included in the selected series."},
+                {"label": "Series Delivery %", "value": format_metric_value(series_summary["avgOverallCompletion"], suffix="%"), "help": "Average delivery across universities in this series."},
+                {"label": "Series Score %", "value": format_metric_value(series_summary["avgAssessmentScore"] * 100 if series_summary["avgAssessmentScore"] is not None else None, suffix="%"), "help": "Average assessment score for universities in this series."},
+            ]
+        )
+        st.dataframe(
+            series_df,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Series": st.column_config.TextColumn("Series"),
+                "Universities": st.column_config.NumberColumn("Universities", format="%d"),
+                "Students": st.column_config.NumberColumn("Students", format="%d"),
+                "Avg Sessions": st.column_config.NumberColumn("Avg Sessions", format="%.1f"),
+                "Avg Delivery %": st.column_config.NumberColumn("Avg Delivery %", format="%.1f%%"),
+                "Avg Score %": st.column_config.NumberColumn("Avg Score %", format="%.1f%%"),
+                "Avg Allotted Hours": st.column_config.NumberColumn("Avg Allotted Hours", format="%.1f"),
+            },
+        )
 
-    st.subheader("Course-wise Breakdown")
-    st.dataframe(university_metrics["courseTable"], use_container_width=True, hide_index=True)
+    with comparison_tab:
+        render_section_header("University benchmark", "Practice %, Exam %, and Lecture % are completion percentages. Avg Delivery % is the overall university delivery view.")
+        st.dataframe(
+            university_rows,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "University": st.column_config.TextColumn("University"),
+                "Sections": st.column_config.NumberColumn("Sections", format="%d"),
+                "Allotted Hours": st.column_config.NumberColumn("Allotted Hours", format="%.1f"),
+                "Avg Sessions": st.column_config.NumberColumn("Avg Sessions", format="%.1f"),
+                "Lecture %": st.column_config.NumberColumn("Lecture %", format="%.1f%%"),
+                "Practice %": st.column_config.NumberColumn("Practice %", format="%.1f%%"),
+                "Exam %": st.column_config.NumberColumn("Exam %", format="%.1f%%"),
+                "Avg Delivery %": st.column_config.NumberColumn("Avg Delivery %", format="%.1f%%"),
+                "Avg Score %": st.column_config.NumberColumn("Avg Score %", format="%.1f%%"),
+                "Participation #": st.column_config.NumberColumn("Participation #", format="%.1f"),
+            },
+        )
+
+    with detail_tab:
+        scope_label = selected_section if selected_section else "All sections"
+        render_section_header(f"{selected_university} - {scope_label}", "Detailed course view for the selected university and section scope.")
+        if dates:
+            st.markdown(
+                f"<div class='info-card'><strong>Semester window:</strong> {dates['start']} to {dates['end']}</div>",
+                unsafe_allow_html=True,
+            )
+        if hidden_courses:
+            st.markdown(
+                f"<div class='info-card'><strong>Course cleanup applied:</strong> showing {len(course_table)} focus courses and hiding {hidden_courses} support courses to keep the breakdown readable.</div>",
+                unsafe_allow_html=True,
+            )
+        render_metric_row(
+            [
+                {"label": "Courses Shown", "value": format_metric_value(len(course_table), decimals=0), "help": "Visible courses after removing non-core subjects from the breakdown."},
+                {"label": "Students", "value": format_metric_value(university_metrics["classSize"], decimals=0), "help": "Section roster size for the selected scope."},
+                {"label": "Total Sessions", "value": format_metric_value(university_metrics["totalSessions"], decimals=1), "help": "Combined lecture, practice, and exam sessions."},
+                {"label": "Avg Delivery %", "value": format_metric_value(university_metrics["overallCompletion"], suffix="%"), "help": "Overall completion across all session types in this scope."},
+            ]
+        )
+        render_metric_row(
+            [
+                {"label": "Lecture %", "value": format_metric_value(university_metrics["lectureCompletion"], suffix="%"), "help": "Lecture completion percentage."},
+                {"label": "Practice %", "value": format_metric_value(university_metrics["practiceCompletion"], suffix="%"), "help": "Practice completion percentage, not student completion."},
+                {"label": "Exam %", "value": format_metric_value(university_metrics["examCompletion"], suffix="%"), "help": "Exam completion percentage."},
+                {"label": "Score %", "value": format_metric_value(university_metrics["assessmentScore"], suffix="%"), "help": "Average assessment score percentage."},
+                {"label": "Participation #", "value": format_metric_value(university_metrics["assessmentParticipation"], decimals=1), "help": "Average count of students who attempted the mapped assessments."},
+            ]
+        )
+        with st.expander("Metric definitions"):
+            st.markdown(
+                """
+                - `Avg Delivery %`: average completion view used for university-level comparison.
+                - `Practice %`, `Lecture %`, `Exam %`: completion percentages for those session types.
+                - `Score %`: average assessment score percentage.
+                - `Participation #`: average number of learners who attempted the mapped assessments.
+                """
+            )
+        st.dataframe(
+            course_table,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Course": st.column_config.TextColumn("Course"),
+                "Lecture Sessions": st.column_config.NumberColumn("Lecture Sessions", format="%.1f"),
+                "Practice Sessions": st.column_config.NumberColumn("Practice Sessions", format="%.1f"),
+                "Exam Sessions": st.column_config.NumberColumn("Exam Sessions", format="%.1f"),
+                "Total Sessions": st.column_config.NumberColumn("Total Sessions", format="%.1f"),
+                "Lecture %": st.column_config.NumberColumn("Lecture %", format="%.1f%%"),
+                "Practice %": st.column_config.NumberColumn("Practice %", format="%.1f%%"),
+                "Exam %": st.column_config.NumberColumn("Exam %", format="%.1f%%"),
+                "Score %": st.column_config.NumberColumn("Score %", format="%.1f%%"),
+                "Participation #": st.column_config.NumberColumn("Participation #", format="%.1f"),
+            },
+        )
+
+
 
 
 if __name__ == "__main__":
