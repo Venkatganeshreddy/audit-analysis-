@@ -872,6 +872,19 @@ def inject_custom_css():
                 background: linear-gradient(180deg, #f8fafc 0%, #eef4ff 100%);
                 color: #0f172a;
             }
+            .block-container {
+                max-width: 1320px;
+                padding-top: 1.4rem;
+                padding-bottom: 2.5rem;
+            }
+            [data-testid="stHeader"] {
+                background: rgba(248, 250, 252, 0.9);
+                backdrop-filter: blur(10px);
+                border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+            }
+            [data-testid="stToolbar"] {
+                right: 1rem;
+            }
             [data-testid="stSidebar"] {
                 background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
                 border-right: 1px solid rgba(148, 163, 184, 0.2);
@@ -879,10 +892,27 @@ def inject_custom_css():
             [data-testid="stSidebar"] * {
                 color: #e2e8f0;
             }
+            [data-testid="stSidebar"] [data-baseweb="select"] > div,
+            [data-testid="stSidebar"] .stRadio > div {
+                background: rgba(15, 23, 42, 0.58);
+                border: 1px solid rgba(148, 163, 184, 0.18);
+                border-radius: 14px;
+            }
             [data-testid="stSidebar"] .stButton button {
                 background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
                 border: none;
                 color: white;
+                font-weight: 600;
+            }
+            [data-baseweb="select"] > div {
+                background: rgba(255, 255, 255, 0.95);
+                border: 1px solid rgba(148, 163, 184, 0.24);
+                border-radius: 14px;
+                min-height: 48px;
+                box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
+            }
+            .stSelectbox label p,
+            .stRadio label p {
                 font-weight: 600;
             }
             .hero-card {
@@ -928,7 +958,7 @@ def inject_custom_css():
                 font-weight: 600;
             }
             .section-heading {
-                margin: 6px 0 2px 0;
+                margin: 0 0 2px 0;
                 font-size: 1.2rem;
                 font-weight: 700;
                 color: #0f172a;
@@ -979,8 +1009,25 @@ def inject_custom_css():
                 box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
                 background: rgba(255, 255, 255, 0.94);
             }
+            div[data-testid="stTabs"] [data-baseweb="tab-list"] {
+                gap: 0.75rem;
+                margin-bottom: 1rem;
+            }
             div[data-testid="stTabs"] button {
                 font-weight: 600;
+                border: 1px solid rgba(148, 163, 184, 0.24);
+                border-radius: 999px;
+                padding: 0.55rem 1rem;
+                background: rgba(255, 255, 255, 0.92);
+                color: #334155;
+            }
+            div[data-testid="stTabs"] button[aria-selected="true"] {
+                background: #eff6ff;
+                color: #1d4ed8;
+                border-color: rgba(59, 130, 246, 0.35);
+            }
+            div[data-testid="stTabs"] [data-baseweb="tab-highlight"] {
+                display: none;
             }
         </style>
         """,
@@ -1100,13 +1147,18 @@ def main():
         ]
     )
 
-    selected_series = st.selectbox("Series", active_series)
+    render_section_header("Focus selection", "Choose the series, university, and section scope before reviewing the tables below.")
+    filter_col_1, filter_col_2, filter_col_3 = st.columns([1, 1.35, 1])
+    with filter_col_1:
+        selected_series = st.selectbox("Series", active_series)
     series_summary = series_data[selected_series]
     universities = sorted(series_summary["universities"], key=lambda item: item["name"])
-    selected_university = st.selectbox("University", [item["name"] for item in universities])
+    with filter_col_2:
+        selected_university = st.selectbox("University", [item["name"] for item in universities])
     sections = sorted(semester_df[semester_df["institute"] == selected_university]["section"].dropna().unique().tolist())
     section_options = ["All Sections"] + sections if sections else ["All Sections"]
-    selected_section_label = st.selectbox("Section", section_options)
+    with filter_col_3:
+        selected_section_label = st.selectbox("Section", section_options)
     selected_section = "" if selected_section_label == "All Sections" else selected_section_label
 
     university_rows = pd.DataFrame(
