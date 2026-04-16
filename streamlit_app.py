@@ -1443,14 +1443,20 @@ def main():
                 f"<div class='info-card'><strong>Course cleanup applied:</strong> showing {len(course_table)} focus courses and hiding {hidden_courses} support courses to keep the breakdown readable.</div>",
                 unsafe_allow_html=True,
             )
-        render_metric_row(
+        detail_metrics = [
+            {"label": "Courses Shown", "value": format_metric_value(len(course_table), decimals=0), "help": "Visible courses after removing non-core subjects from the breakdown."},
+            {"label": "Students", "value": format_metric_value(university_metrics["classSize"], decimals=0), "help": "Section roster size for the selected scope."},
+        ]
+        if analysis_type == "design":
+            selected_university_meta = next((item for item in universities if item["name"] == selected_university), None)
+            detail_metrics.append({"label": "Allotted Hours", "value": format_metric_value(selected_university_meta["allottedHours"] if selected_university_meta else None, decimals=1), "help": "Planned hours configured for the selected university in design mode."})
+        detail_metrics.extend(
             [
-                {"label": "Courses Shown", "value": format_metric_value(len(course_table), decimals=0), "help": "Visible courses after removing non-core subjects from the breakdown."},
-                {"label": "Students", "value": format_metric_value(university_metrics["classSize"], decimals=0), "help": "Section roster size for the selected scope."},
                 {"label": "Total Slots", "value": format_metric_value(university_metrics["totalSessions"], decimals=1), "help": "Combined lecture, practice, and exam slots."},
                 {"label": "Avg Delivery %", "value": format_metric_value(university_metrics["overallCompletion"], suffix="%"), "help": "Overall completion across all session types in this scope."},
             ]
         )
+        render_metric_row(detail_metrics)
         render_metric_row(
             [
                 {"label": "Lecture %", "value": format_metric_value(university_metrics["lectureCompletion"], suffix="%"), "help": "Lecture completion percentage."},
