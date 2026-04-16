@@ -1547,6 +1547,19 @@ def main():
         unsafe_allow_html=True,
     )
 
+    if analysis_type == "overview":
+        if st.session_state.get("analysis_type_mode") != "overview" and "pending_current_view" not in st.session_state:
+            st.session_state["current_view"] = "University Overview"
+        overview_university_options = sorted(item["name"] for item in all_universities)
+        if overview_university_options:
+            apply_pending_navigation_state(overview_university_options, ["All Sections"])
+            if st.session_state.get("selected_university") not in overview_university_options:
+                st.session_state["selected_university"] = overview_university_options[0]
+        st.session_state["selected_section_label"] = "All Sections"
+        if st.session_state.get("current_view") not in ["University Overview", "Course Breakdown"]:
+            st.session_state["current_view"] = "University Overview"
+    st.session_state["analysis_type_mode"] = analysis_type
+
     top_metrics = [
         {"label": "Universities", "value": format_metric_value(semester_df["institute"].nunique(), decimals=0), "help": "Institutions with schedule data in the current view."},
         {"label": "Students", "value": format_metric_value(total_students, decimals=0), "help": "Summed section roster size using the latest section-level student counts."},
@@ -1559,34 +1572,21 @@ def main():
             {"label": "Avg Score %", "value": format_metric_value(avg_score, suffix="%"), "help": "Average assessment score for universities with assessment data."},
         ]
     )
-    render_metric_row(top_metrics)
+    if not (analysis_type == "overview" and st.session_state.get("current_view") == "Course Breakdown"):
+        render_metric_row(top_metrics)
 
-    focus_caption = "Choose the university and section scope before reviewing the overview drill-down." if analysis_type == "overview" else "Choose the series, university, and section scope before reviewing the tables below."
-    render_section_header("Focus selection", focus_caption)
     selected_series = None
     series_summary = None
     if analysis_type == "overview":
         universities = sorted(all_universities, key=lambda item: item["name"])
         university_options = [item["name"] for item in universities]
-        filter_col_1, filter_col_2 = st.columns([1.35, 1])
-        section_options = ["All Sections"]
-        apply_pending_navigation_state(university_options, section_options)
-        if st.session_state.get("selected_university") not in university_options:
-            st.session_state["selected_university"] = university_options[0]
-        selected_university = st.session_state["selected_university"]
-        sections = sorted(semester_df[semester_df["institute"] == selected_university]["section"].dropna().unique().tolist())
-        section_options = ["All Sections"] + sections if sections else ["All Sections"]
-        apply_pending_navigation_state(university_options, section_options)
-        selected_university = st.session_state.get("selected_university", selected_university)
-        sections = sorted(semester_df[semester_df["institute"] == selected_university]["section"].dropna().unique().tolist())
-        section_options = ["All Sections"] + sections if sections else ["All Sections"]
-        with filter_col_1:
-            selected_university = st.selectbox("University", university_options, key="selected_university")
-        if st.session_state.get("selected_section_label") not in section_options:
-            st.session_state["selected_section_label"] = "All Sections"
-        with filter_col_2:
-            selected_section_label = st.selectbox("Section", section_options, key="selected_section_label")
+        if not university_options:
+            st.warning("No university data available for overview.")
+            st.stop()
+        selected_university = st.session_state.get("selected_university", university_options[0])
+        selected_section_label = "All Sections"
     else:
+        render_section_header("Focus selection", "Choose the series, university, and section scope before reviewing the tables below.")
         if st.session_state.get("selected_series") not in active_series:
             st.session_state["selected_series"] = active_series[0]
         filter_col_1, filter_col_2, filter_col_3 = st.columns([1, 1.35, 1])
@@ -1642,23 +1642,30 @@ def main():
     timeline_df = build_university_timeline_rows(all_universities, semester, batch)
     overview_df = build_university_overview_rows(all_universities, semester, batch)
     if analysis_type == "overview":
-        view_options = ["University Overview", "Course Breakdown"]
+        current_view = st.session_state.get("current_view", "University Overview")
     else:
         view_options = ["Series Overview", "University Comparison", "Course Breakdown"]
         if analysis_type == "delivered":
             view_options.insert(2, "University Timeline")
-    if st.session_state.get("current_view") not in view_options:
-        st.session_state["current_view"] = view_options[0]
-    current_view = st.radio("View", view_options, key="current_view", horizontal=True)
+        if st.session_state.get("current_view") not in view_options:
+            st.session_state["current_view"] = view_options[0]
+        current_view = st.radio("View", view_options, key="current_view", horizontal=True)
 
-    if current_view == "University Overview":
-        render_section_header("University overview", "Timeline-first overview across universities. Select a row to open its course breakdown.")
-        delivery_mode_options = ["All delivery modes"] + sorted([value for value in overview_df["Delivery Mode"].dropna().unique().tolist() if value and value != "--"])
+    if analysis_type == "overview" and current_view == "University Overview":
+        render_section_header("University overview", "Filter by delivery mode and click a university row to open its course breakdown.")
+        delivery_mode_options = ["All"] + [value for value in ["Full", "Co", "Hybrid"] if value in overview_df["Delivery Mode"].dropna().unique().tolist()]
         if st.session_state.get("overview_delivery_mode") not in delivery_mode_options:
-            st.session_state["overview_delivery_mode"] = "All delivery modes"
-        selected_delivery_mode = st.selectbox("Delivery mode filter", delivery_mode_options, key="overview_delivery_mode")
+            st.session_state["overview_delivery_mode"] = "All"
+        filter_labels = ["All", "Full", "Co", "Hybrid"]
+        filter_columns = st.columns(len(filter_labels))
+        for column, label in zip(filter_columns, filter_labels):
+            disabled = label not in delivery_mode_options
+            with column:
+                if st.button(label, key=f"overview_mode_{label}", use_container_width=True, disabled=disabled):
+                    st.session_state["overview_delivery_mode"] = label
+        selected_delivery_mode = st.session_state.get("overview_delivery_mode", "All")
         filtered_overview_df = overview_df.copy()
-        if selected_delivery_mode != "All delivery modes":
+        if selected_delivery_mode != "All":
             filtered_overview_df = filtered_overview_df[filtered_overview_df["Delivery Mode"] == selected_delivery_mode].reset_index(drop=True)
         if filtered_overview_df.empty:
             st.caption("No universities match the selected delivery mode.")
