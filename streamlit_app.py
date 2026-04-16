@@ -782,6 +782,12 @@ def queue_course_breakdown_navigation(university_name: str):
 
 
 
+def queue_overview_navigation():
+    st.session_state["pending_selected_section_label"] = "All Sections"
+    st.session_state["pending_current_view"] = "University Overview"
+
+
+
 def open_course_breakdown_from_timeline():
     queue_course_breakdown_navigation(st.session_state.get("timeline_selected_university"))
 
@@ -1652,17 +1658,21 @@ def main():
         current_view = st.radio("View", view_options, key="current_view", horizontal=True)
 
     if analysis_type == "overview" and current_view == "University Overview":
-        render_section_header("University overview", "Filter by delivery mode and click a university row to open its course breakdown.")
-        delivery_mode_options = ["All"] + [value for value in ["Full", "Co", "Hybrid"] if value in overview_df["Delivery Mode"].dropna().unique().tolist()]
+        render_section_header("University overview", "Filter by delivery mode and click a university name to open its course breakdown.")
+        available_modes = set(overview_df["Delivery Mode"].dropna().tolist())
+        delivery_mode_options = ["All"] + [value for value in ["Full", "Co", "Hybrid"] if value in available_modes]
         if st.session_state.get("overview_delivery_mode") not in delivery_mode_options:
             st.session_state["overview_delivery_mode"] = "All"
         filter_labels = ["All", "Full", "Co", "Hybrid"]
         filter_columns = st.columns(len(filter_labels))
+        selected_delivery_mode = st.session_state.get("overview_delivery_mode", "All")
         for column, label in zip(filter_columns, filter_labels):
             disabled = label not in delivery_mode_options
+            button_type = "primary" if selected_delivery_mode == label else "secondary"
             with column:
-                if st.button(label, key=f"overview_mode_{label}", use_container_width=True, disabled=disabled):
+                if st.button(label, key=f"overview_mode_{label}", use_container_width=True, disabled=disabled, type=button_type):
                     st.session_state["overview_delivery_mode"] = label
+                    st.rerun()
         selected_delivery_mode = st.session_state.get("overview_delivery_mode", "All")
         filtered_overview_df = overview_df.copy()
         if selected_delivery_mode != "All":
@@ -1670,44 +1680,50 @@ def main():
         if filtered_overview_df.empty:
             st.caption("No universities match the selected delivery mode.")
         else:
-            overview_table_key = f"overview_university_table_{st.session_state.get('overview_table_nonce', 0)}"
-            overview_selection = st.dataframe(
-                filtered_overview_df,
-                use_container_width=True,
-                hide_index=True,
-                key=overview_table_key,
-                on_select="rerun",
-                selection_mode="single-row",
-                column_config={
-                    "University": st.column_config.TextColumn("University"),
-                    "Delivery Mode": st.column_config.TextColumn("Delivery Mode"),
-                    "Start Date": st.column_config.TextColumn("Start Date"),
-                    "End Date": st.column_config.TextColumn("End Date"),
-                    "Working Days": st.column_config.NumberColumn("Working Days", format="%.1f"),
-                    "Total NIAT Slots": st.column_config.NumberColumn("Total NIAT Slots", format="%.1f"),
-                    "NIAT Assessment Slots": st.column_config.NumberColumn("NIAT Assessment Slots", format="%.1f"),
-                    "Net NIAT Executional Slots": st.column_config.NumberColumn("Net NIAT Executional Slots", format="%.1f"),
-                    "Total NIAT Executional Days": st.column_config.NumberColumn("Total NIAT Executional Days", format="%.1f"),
-                    "Net NIAT No. of Weeks": st.column_config.NumberColumn("Net NIAT No. of Weeks", format="%.1f"),
-                    "Sections": st.column_config.NumberColumn("Sections", format="%d"),
-                    "Allotted Hours": st.column_config.NumberColumn("Allotted Hours", format="%.1f"),
-                    "Delivered Slots": st.column_config.NumberColumn("Delivered Slots", format="%.1f"),
-                    "Avg Delivery %": st.column_config.NumberColumn("Avg Delivery %", format="%.1f%%"),
-                    "Avg Score %": st.column_config.NumberColumn("Avg Score %", format="%.1f%%"),
-                },
-            )
-            selected_rows = []
-            if overview_selection is not None:
-                selection_state = getattr(overview_selection, "selection", None)
-                if selection_state is not None:
-                    selected_rows = list(getattr(selection_state, "rows", []) or [])
-                elif isinstance(overview_selection, dict):
-                    selected_rows = overview_selection.get("selection", {}).get("rows", []) or []
-            if selected_rows:
-                clicked_university = filtered_overview_df.iloc[selected_rows[0]]["University"]
-                queue_course_breakdown_navigation(clicked_university)
-                st.session_state["overview_table_nonce"] = st.session_state.get("overview_table_nonce", 0) + 1
-                st.rerun()
+            display_df = filtered_overview_df.copy()
+            display_df.insert(0, "Open", ["Open"] * len(display_df))
+            display_df = display_df[[
+                "Open",
+                "University",
+                "Delivery Mode",
+                "Start Date",
+                "End Date",
+                "Working Days",
+                "Total NIAT Slots",
+                "NIAT Assessment Slots",
+                "Net NIAT Executional Slots",
+                "Total NIAT Executional Days",
+                "Net NIAT No. of Weeks",
+                "Sections",
+                "Allotted Hours",
+                "Delivered Slots",
+                "Avg Delivery %",
+                "Avg Score %",
+            ]]
+            overview_columns = st.columns([0.6, 2.6, 1.1, 1.1, 1.1, 1.0, 1.1, 1.1, 1.3, 1.3, 1.1, 0.8, 1.0, 1.0, 1.0, 1.0])
+            headers = list(display_df.columns)
+            for column, header in zip(overview_columns, headers):
+                column.markdown(f"**{header}**")
+            for row_index, (_, row) in enumerate(display_df.iterrows()):
+                row_columns = st.columns([0.6, 2.6, 1.1, 1.1, 1.1, 1.0, 1.1, 1.1, 1.3, 1.3, 1.1, 0.8, 1.0, 1.0, 1.0, 1.0])
+                with row_columns[0]:
+                    if st.button("Open", key=f"overview_open_{row_index}", use_container_width=True):
+                        queue_course_breakdown_navigation(row["University"])
+                        st.rerun()
+                with row_columns[1]:
+                    if st.button(str(row["University"]), key=f"overview_university_{row_index}", use_container_width=True, type="tertiary"):
+                        queue_course_breakdown_navigation(row["University"])
+                        st.rerun()
+                for col_index, header in enumerate(headers[2:], start=2):
+                    value = row[header]
+                    if pd.isna(value):
+                        value = "--"
+                    elif isinstance(value, float):
+                        if header in {"Avg Delivery %", "Avg Score %"}:
+                            value = f"{value:.1f}%"
+                        else:
+                            value = f"{value:.1f}"
+                    row_columns[col_index].write(value)
 
     elif current_view == "Series Overview":
         render_section_header("Series snapshot", "Each series groups universities by planned or delivered volume based on the selected sidebar logic.")
@@ -1803,6 +1819,12 @@ def main():
         )
 
     elif current_view == "Course Breakdown":
+        if analysis_type == "overview":
+            back_col, _ = st.columns([0.2, 0.8])
+            with back_col:
+                if st.button("Back", key="overview_back_button", use_container_width=True):
+                    queue_overview_navigation()
+                    st.rerun()
         scope_label = selected_section if selected_section else "All sections"
         render_section_header(f"{selected_university} - {scope_label}", "Detailed course view for the selected university and section scope.")
         if dates:
