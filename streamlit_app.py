@@ -478,6 +478,52 @@ def get_batch_year_shift(batch: str) -> int:
     return int(match.group(1)) - 25 if match else 0
 
 
+def get_date_based_available_semesters(batch: str):
+    today = datetime.now().date()
+    available = []
+    for semester_name, windows in SEMESTER_DATES_BY_SEMESTER.items():
+        shifted_starts = []
+        for window in windows.values():
+            shifted_start = shift_iso_date(to_iso_date(window["start"]), get_batch_year_shift(batch))
+            if shifted_start:
+                shifted_starts.append(datetime.strptime(shifted_start, "%Y-%m-%d").date())
+        if shifted_starts and min(shifted_starts) <= today:
+            available.append(semester_name)
+    return sorted(available, key=lambda value: int(re.search(r"\d+", value).group()))
+
+
+@st.cache_data(ttl=600, show_spinner=False)
+def fetch_available_semesters_for_batch(batch: str):
+    refs = get_table_refs()
+    checks = []
+    for semester_name in sorted(SEMESTER_DATES_BY_SEMESTER.keys(), key=lambda value: int(re.search(r"\d+", value).group())):
+        where_clauses = ["TRIM(COALESCE(s.institute_name, '')) != ''"]
+        window_clause = get_semester_window_clause(semester_name, batch, "s.institute_name", "DATE(s.session_date)")
+        if window_clause:
+            where_clauses.append(window_clause)
+        if should_apply_batch_filter(batch):
+            where_clauses.append(f"LOWER(COALESCE(s.batch_name, '')) LIKE '%{sql_escape(batch.strip().lower())}%'")
+        checks.append(
+            f"SELECT '{sql_escape(semester_name)}' AS semester, COUNT(1) AS row_count FROM {refs['schedule']} s WHERE {' AND '.join(where_clauses)}"
+        )
+    if not checks:
+        return []
+    sql = " UNION ALL ".join(checks)
+    results = run_query(sql)
+    available = results[results["row_count"] > 0]["semester"].tolist() if not results.empty else []
+    return sorted(available, key=lambda value: int(re.search(r"\d+", value).group()))
+
+
+def get_available_semesters_for_batch(batch: str):
+    try:
+        available = fetch_available_semesters_for_batch(batch)
+        if available:
+            return available
+    except Exception:
+        pass
+    return get_date_based_available_semesters(batch)
+
+
 def get_semester_window_clause(semester: str, batch: str, institute_expr: str, date_expr: str) -> str:
     windows = SEMESTER_DATES_BY_SEMESTER.get(semester)
     if not windows:
@@ -1193,7 +1239,18 @@ def main():
         st.markdown("## Audit Analysis")
         st.caption("Live Streamlit dashboard for delivery and assessment tracking.")
         batch = st.selectbox("Batch", ["NIAT 24", "NIAT 25", "NIAT 26"], index=1)
-        semester = st.selectbox("Semester", [f"Semester {index}" for index in range(1, 9)], index=0)
+        available_semesters = get_available_semesters_for_batch(batch)
+        if not available_semesters:
+            st.warning(f"No configured semesters are available yet for {batch}.")
+            st.caption("Future batches stay hidden until their semester windows start, so the dashboard avoids irrelevant fetches.")
+            st.stop()
+        default_semester = available_semesters[-1]
+        previous_batch = st.session_state.get("batch")
+        previous_semester = st.session_state.get("semester")
+        if previous_batch == batch and previous_semester in available_semesters:
+            default_semester = previous_semester
+        semester = st.selectbox("Semester", available_semesters, index=available_semesters.index(default_semester))
+        st.caption(f"Available for {batch}: {', '.join(available_semesters)}")
         analysis_type = st.radio("Grouping Logic", ["design", "delivered"], format_func=lambda value: value.title())
         load_clicked = st.button("Load latest data", type="primary", use_container_width=True)
         st.markdown("---")
