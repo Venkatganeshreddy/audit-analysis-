@@ -402,7 +402,7 @@ COURSE_ALIAS_GROUPS_BY_SEMESTER = {
         "Yoga": ["application of yoga in mind body management", "yoga"],
         "Co-curricular Activities": ["co curricular activities - 2", "co curricular activities 2"],
         "Internship": ["internship", "trans disciplinary project"],
-        "Assessment": ["assessment"],
+        "Assessment": ["assessment", "module test", "module exam", "mid exam", "mid test", "internal exam", "internal test"],
         "Language Elective": ["language elective"],
         "Support Slot": ["base 44 workshop", "vac 2", "sec 2"],
         "Cloud Computing": ["cloud computing"],
