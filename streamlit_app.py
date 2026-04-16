@@ -1508,17 +1508,24 @@ def main():
     render_metric_row(top_metrics)
 
     render_section_header("Focus selection", "Choose the series, university, and section scope before reviewing the tables below.")
+    if st.session_state.get("selected_series") not in active_series:
+        st.session_state["selected_series"] = active_series[0]
     filter_col_1, filter_col_2, filter_col_3 = st.columns([1, 1.35, 1])
     with filter_col_1:
-        selected_series = st.selectbox("Series", active_series)
+        selected_series = st.selectbox("Series", active_series, key="selected_series")
     series_summary = series_data[selected_series]
     universities = sorted(series_summary["universities"], key=lambda item: item["name"])
+    university_options = [item["name"] for item in universities]
+    if st.session_state.get("selected_university") not in university_options:
+        st.session_state["selected_university"] = university_options[0]
     with filter_col_2:
-        selected_university = st.selectbox("University", [item["name"] for item in universities])
+        selected_university = st.selectbox("University", university_options, key="selected_university")
     sections = sorted(semester_df[semester_df["institute"] == selected_university]["section"].dropna().unique().tolist())
     section_options = ["All Sections"] + sections if sections else ["All Sections"]
+    if st.session_state.get("selected_section_label") not in section_options:
+        st.session_state["selected_section_label"] = "All Sections"
     with filter_col_3:
-        selected_section_label = st.selectbox("Section", section_options)
+        selected_section_label = st.selectbox("Section", section_options, key="selected_section_label")
     selected_section = "" if selected_section_label == "All Sections" else selected_section_label
 
     university_rows = pd.DataFrame(
@@ -1547,14 +1554,14 @@ def main():
     dates = get_semester_dates_for_institute(selected_university, semester, batch)
 
     timeline_df = build_university_timeline_rows(all_universities, semester, batch)
-
+    view_options = ["Series Overview", "University Comparison", "Course Breakdown"]
     if analysis_type == "delivered":
-        overview_tab, comparison_tab, timeline_tab, detail_tab = st.tabs(["Series Overview", "University Comparison", "University Timeline", "Course Breakdown"])
-    else:
-        overview_tab, comparison_tab, detail_tab = st.tabs(["Series Overview", "University Comparison", "Course Breakdown"])
-        timeline_tab = None
+        view_options.insert(2, "University Timeline")
+    if st.session_state.get("current_view") not in view_options:
+        st.session_state["current_view"] = view_options[0]
+    current_view = st.radio("View", view_options, key="current_view", horizontal=True)
 
-    with overview_tab:
+    if current_view == "Series Overview":
         render_section_header("Series snapshot", "Each series groups universities by planned or delivered volume based on the selected sidebar logic.")
         series_metrics = [
             {"label": "Selected Series", "value": selected_series, "help": "Current benchmark band used for comparison."},
@@ -1584,7 +1591,7 @@ def main():
             },
         )
 
-    with comparison_tab:
+    elif current_view == "University Comparison":
         render_section_header("University benchmark", "Practice %, Exam %, and Lecture % are completion percentages. Avg Delivery % is the overall university delivery view.")
         st.dataframe(
             university_rows,
@@ -1604,28 +1611,50 @@ def main():
             },
         )
 
-    if timeline_tab is not None:
-        with timeline_tab:
-            render_section_header("University timeline", "Timeline overview for delivered mode using the configured semester dates and NIAT slot plan by university.")
-            st.dataframe(
-                timeline_df,
-                use_container_width=True,
-                hide_index=True,
-                column_config={
-                    "University": st.column_config.TextColumn("University"),
-                    "Start Date": st.column_config.TextColumn("Start Date"),
-                    "End Date": st.column_config.TextColumn("End Date"),
-                    "Delivery Mode": st.column_config.TextColumn("Delivery Mode"),
-                    "Working Days": st.column_config.NumberColumn("Working Days", format="%.1f"),
-                    "Total NIAT Slots": st.column_config.NumberColumn("Total NIAT Slots", format="%.1f"),
-                    "NIAT Assessment Slots": st.column_config.NumberColumn("NIAT Assessment Slots", format="%.1f"),
-                    "Net NIAT Executional Slots": st.column_config.NumberColumn("Net NIAT Executional Slots", format="%.1f"),
-                    "Total NIAT Executional Days": st.column_config.NumberColumn("Total NIAT Executional Days", format="%.1f"),
-                    "Net NIAT No. of Weeks": st.column_config.NumberColumn("Net NIAT No. of Weeks", format="%.1f"),
-                },
-            )
+    elif current_view == "University Timeline":
+        render_section_header("University timeline", "Timeline overview for delivered mode using the configured semester dates and NIAT slot plan by university.")
+        delivery_mode_options = ["All delivery modes"] + sorted([value for value in timeline_df["Delivery Mode"].dropna().unique().tolist() if value and value != "--"])
+        if st.session_state.get("timeline_delivery_mode") not in delivery_mode_options:
+            st.session_state["timeline_delivery_mode"] = "All delivery modes"
+        timeline_filter_col_1, timeline_filter_col_2 = st.columns([1, 1.2])
+        with timeline_filter_col_1:
+            selected_delivery_mode = st.selectbox("Delivery mode filter", delivery_mode_options, key="timeline_delivery_mode")
+        filtered_timeline_df = timeline_df.copy()
+        if selected_delivery_mode != "All delivery modes":
+            filtered_timeline_df = filtered_timeline_df[filtered_timeline_df["Delivery Mode"] == selected_delivery_mode].reset_index(drop=True)
+        timeline_university_options = filtered_timeline_df["University"].tolist()
+        if timeline_university_options:
+            if st.session_state.get("timeline_selected_university") not in timeline_university_options:
+                st.session_state["timeline_selected_university"] = timeline_university_options[0]
+            with timeline_filter_col_2:
+                timeline_selected_university = st.selectbox("Timeline university", timeline_university_options, key="timeline_selected_university")
+            if st.button("Open selected university in Course Breakdown", use_container_width=True):
+                st.session_state["selected_university"] = timeline_selected_university
+                st.session_state["selected_section_label"] = "All Sections"
+                st.session_state["current_view"] = "Course Breakdown"
+                st.rerun()
+        else:
+            with timeline_filter_col_2:
+                st.caption("No universities match the selected delivery mode.")
+        st.dataframe(
+            filtered_timeline_df,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "University": st.column_config.TextColumn("University"),
+                "Start Date": st.column_config.TextColumn("Start Date"),
+                "End Date": st.column_config.TextColumn("End Date"),
+                "Delivery Mode": st.column_config.TextColumn("Delivery Mode"),
+                "Working Days": st.column_config.NumberColumn("Working Days", format="%.1f"),
+                "Total NIAT Slots": st.column_config.NumberColumn("Total NIAT Slots", format="%.1f"),
+                "NIAT Assessment Slots": st.column_config.NumberColumn("NIAT Assessment Slots", format="%.1f"),
+                "Net NIAT Executional Slots": st.column_config.NumberColumn("Net NIAT Executional Slots", format="%.1f"),
+                "Total NIAT Executional Days": st.column_config.NumberColumn("Total NIAT Executional Days", format="%.1f"),
+                "Net NIAT No. of Weeks": st.column_config.NumberColumn("Net NIAT No. of Weeks", format="%.1f"),
+            },
+        )
 
-    with detail_tab:
+    elif current_view == "Course Breakdown":
         scope_label = selected_section if selected_section else "All sections"
         render_section_header(f"{selected_university} - {scope_label}", "Detailed course view for the selected university and section scope.")
         if dates:
