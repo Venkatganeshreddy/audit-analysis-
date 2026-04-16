@@ -752,6 +752,29 @@ def build_university_timeline_rows(universities, semester: str, batch: str):
     return pd.DataFrame(rows)
 
 
+
+def open_course_breakdown_from_timeline():
+    selected = st.session_state.get("timeline_selected_university")
+    if selected:
+        st.session_state["pending_selected_university"] = selected
+        st.session_state["pending_selected_section_label"] = "All Sections"
+        st.session_state["pending_current_view"] = "Course Breakdown"
+
+
+def apply_pending_navigation_state(active_universities, available_sections):
+    pending_university = st.session_state.pop("pending_selected_university", None)
+    pending_section = st.session_state.pop("pending_selected_section_label", None)
+    pending_view = st.session_state.pop("pending_current_view", None)
+    if pending_university in active_universities:
+        st.session_state["selected_university"] = pending_university
+    if pending_section in available_sections:
+        st.session_state["selected_section_label"] = pending_section
+    elif pending_section:
+        st.session_state["selected_section_label"] = "All Sections"
+    if pending_view:
+        st.session_state["current_view"] = pending_view
+
+
 def get_series_for_value(value: float) -> dict:
     for series in SERIES_RANGES:
         if value >= series["min"] and value < series["max"]:
@@ -1516,12 +1539,20 @@ def main():
     series_summary = series_data[selected_series]
     universities = sorted(series_summary["universities"], key=lambda item: item["name"])
     university_options = [item["name"] for item in universities]
+    sections = []
+    section_options = ["All Sections"]
+    apply_pending_navigation_state(university_options, section_options)
     if st.session_state.get("selected_university") not in university_options:
         st.session_state["selected_university"] = university_options[0]
-    with filter_col_2:
-        selected_university = st.selectbox("University", university_options, key="selected_university")
+    selected_university = st.session_state["selected_university"]
     sections = sorted(semester_df[semester_df["institute"] == selected_university]["section"].dropna().unique().tolist())
     section_options = ["All Sections"] + sections if sections else ["All Sections"]
+    apply_pending_navigation_state(university_options, section_options)
+    selected_university = st.session_state.get("selected_university", selected_university)
+    sections = sorted(semester_df[semester_df["institute"] == selected_university]["section"].dropna().unique().tolist())
+    section_options = ["All Sections"] + sections if sections else ["All Sections"]
+    with filter_col_2:
+        selected_university = st.selectbox("University", university_options, key="selected_university")
     if st.session_state.get("selected_section_label") not in section_options:
         st.session_state["selected_section_label"] = "All Sections"
     with filter_col_3:
@@ -1628,11 +1659,11 @@ def main():
                 st.session_state["timeline_selected_university"] = timeline_university_options[0]
             with timeline_filter_col_2:
                 timeline_selected_university = st.selectbox("Timeline university", timeline_university_options, key="timeline_selected_university")
-            if st.button("Open selected university in Course Breakdown", use_container_width=True):
-                st.session_state["selected_university"] = timeline_selected_university
-                st.session_state["selected_section_label"] = "All Sections"
-                st.session_state["current_view"] = "Course Breakdown"
-                st.rerun()
+            st.button(
+                "Open selected university in Course Breakdown",
+                use_container_width=True,
+                on_click=open_course_breakdown_from_timeline,
+            )
         else:
             with timeline_filter_col_2:
                 st.caption("No universities match the selected delivery mode.")
