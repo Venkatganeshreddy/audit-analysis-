@@ -161,6 +161,96 @@ SEMESTER_DATES_BY_SEMESTER = {
     },
 }
 
+
+ASSESSMENT_SLOTS_BY_SEMESTER = {
+    "Semester 1": 75,
+    "Semester 2": 75,
+}
+
+DELIVERY_MODE_BY_SEMESTER = {
+    "Semester 2": {
+        "BITS": "Hybrid Delivery",
+        "Sanjay Ghodawat University": "Co Delivery",
+        "Annamacharya University": "Co Delivery",
+        "NRI Institute of Technology": "Co Delivery",
+        "Yenepoya University": "Co Delivery",
+        "S-VYASA": "Co Delivery",
+        "CDU": "Co Delivery",
+        "A Dy Patil University": "Full Delivery",
+        "AMET": "Full Delivery",
+        "Chalapathy": "Hybrid Delivery",
+        "Vivekananda global University": "Full Delivery",
+        "NSRIT": "Hybrid Delivery",
+        "MRV University": "Full Delivery",
+        "Takshashila University": "Co Delivery",
+        "Noida International": "Co Delivery",
+        "Crescent University": "Co Delivery",
+    },
+}
+
+WORKING_DAYS_BY_SEMESTER = {
+    "Semester 2": {
+        "BITS": 127,
+        "Sanjay Ghodawat University": 115,
+        "Annamacharya University": 100,
+        "NRI Institute of Technology": 116,
+        "Yenepoya University": 98,
+        "S-VYASA": 84,
+        "CDU": 83.5,
+        "A Dy Patil University": 92,
+        "AMET": 85,
+        "Chalapathy": 83,
+        "Vivekananda global University": 72,
+        "NSRIT": 109,
+        "MRV University": 75,
+        "Takshashila University": 86,
+        "Noida International": 86,
+        "Crescent University": 65,
+    },
+}
+
+EXECUTION_DAYS_BY_SEMESTER = {
+    "Semester 2": {
+        "BITS": 116,
+        "Sanjay Ghodawat University": 104,
+        "Annamacharya University": 89,
+        "NRI Institute of Technology": 104,
+        "Yenepoya University": 87,
+        "S-VYASA": 75,
+        "CDU": 74,
+        "A Dy Patil University": 81,
+        "AMET": 74,
+        "Chalapathy": 72,
+        "Vivekananda global University": 63,
+        "NSRIT": 70,
+        "MRV University": 64,
+        "Takshashila University": 74,
+        "Noida International": 74,
+        "Crescent University": 54,
+    },
+}
+
+EXECUTION_WEEKS_BY_SEMESTER = {
+    "Semester 2": {
+        "BITS": 23.2,
+        "Sanjay Ghodawat University": 17.33333333,
+        "Annamacharya University": 15,
+        "NRI Institute of Technology": 17,
+        "Yenepoya University": 14.5,
+        "S-VYASA": 15,
+        "CDU": 12.33333333,
+        "A Dy Patil University": 13.5,
+        "AMET": 12.33333333,
+        "Chalapathy": 12,
+        "Vivekananda global University": 10.5,
+        "NSRIT": 10,
+        "MRV University": 10.66666667,
+        "Takshashila University": 12.33333333,
+        "Noida International": 12.33333333,
+        "Crescent University": 10.8,
+    },
+}
+
 COURSE_MAPPING_BY_SEMESTER = {
     "Semester 1": {
         "GENERATIVE_AI": "Introduction to Generative AI",
@@ -573,15 +663,93 @@ def get_allotted_hours(name: str, semester: str):
     return None
 
 
-def get_semester_dates_for_institute(name: str, semester: str):
+def get_semester_dates_for_institute(name: str, semester: str, batch: str = ""):
     sem_dates = SEMESTER_DATES_BY_SEMESTER.get(semester, SEMESTER_DATES_BY_SEMESTER["Semester 1"])
+    matched_dates = None
     if name in sem_dates:
-        return sem_dates[name]
+        matched_dates = sem_dates[name]
+    else:
+        lowered = name.lower()
+        for key, value in sem_dates.items():
+            if lowered.find(key.lower().split(" ")[0]) != -1:
+                matched_dates = value
+                break
+    if matched_dates is None:
+        return None
+    if not batch:
+        return matched_dates
+    year_shift = get_batch_year_shift(batch)
+    return {
+        "start": shift_iso_date(to_iso_date(matched_dates["start"]), year_shift),
+        "end": shift_iso_date(to_iso_date(matched_dates["end"]), year_shift),
+    }
+
+
+def format_display_date(value: str) -> str:
+    if not value:
+        return "--"
+    iso_value = to_iso_date(value)
+    return datetime.strptime(iso_value, "%Y-%m-%d").strftime("%d/%m/%Y")
+
+
+def count_weekdays_between(start_iso: str, end_iso: str):
+    if not start_iso or not end_iso:
+        return None
+    start_date = datetime.strptime(start_iso, "%Y-%m-%d").date()
+    end_date = datetime.strptime(end_iso, "%Y-%m-%d").date()
+    if end_date < start_date:
+        return None
+    total = 0
+    current = start_date
+    while current <= end_date:
+        if current.weekday() < 5:
+            total += 1
+        current += pd.Timedelta(days=1)
+    return total
+
+
+def get_semester_config_value(name: str, semester: str, config_by_semester: dict):
+    semester_values = config_by_semester.get(semester, {})
+    if name in semester_values:
+        return semester_values[name]
     lowered = name.lower()
-    for key, value in sem_dates.items():
+    for key, value in semester_values.items():
         if lowered.find(key.lower().split(" ")[0]) != -1:
             return value
     return None
+
+
+def build_university_timeline_rows(universities, semester: str, batch: str):
+    assessment_slots = ASSESSMENT_SLOTS_BY_SEMESTER.get(semester, 0)
+    rows = []
+    for item in sorted(universities, key=lambda value: value["name"]):
+        university_name = item["name"]
+        dates = get_semester_dates_for_institute(university_name, semester, batch)
+        allotted_hours = item.get("allottedHours")
+        working_days = get_semester_config_value(university_name, semester, WORKING_DAYS_BY_SEMESTER)
+        execution_days = get_semester_config_value(university_name, semester, EXECUTION_DAYS_BY_SEMESTER)
+        execution_weeks = get_semester_config_value(university_name, semester, EXECUTION_WEEKS_BY_SEMESTER)
+        if working_days is None and dates:
+            working_days = count_weekdays_between(dates["start"], dates["end"])
+        if execution_days is None and allotted_hours is not None:
+            execution_days = round(allotted_hours / 7)
+        if execution_weeks is None and execution_days is not None:
+            execution_weeks = round(execution_days / 6, 1)
+        rows.append(
+            {
+                "University": university_name,
+                "Start Date": format_display_date(dates["start"]) if dates else "--",
+                "End Date": format_display_date(dates["end"]) if dates else "--",
+                "Delivery Mode": get_semester_config_value(university_name, semester, DELIVERY_MODE_BY_SEMESTER) or "--",
+                "Working Days": round(float(working_days), 1) if working_days is not None else None,
+                "Total NIAT Slots": round(float(allotted_hours) + assessment_slots, 1) if allotted_hours is not None else None,
+                "NIAT Assessment Slots": assessment_slots,
+                "Net NIAT Executional Slots": round(float(allotted_hours), 1) if allotted_hours is not None else None,
+                "Total NIAT Executional Days": round(float(execution_days), 1) if execution_days is not None else None,
+                "Net NIAT No. of Weeks": round(float(execution_weeks), 1) if execution_weeks is not None else None,
+            }
+        )
+    return pd.DataFrame(rows)
 
 
 def get_series_for_value(value: float) -> dict:
@@ -1376,9 +1544,15 @@ def main():
         st.warning("No university data available for the current selection.")
         st.stop()
     course_table, hidden_courses = filter_course_table(university_metrics["courseTable"], semester)
-    dates = get_semester_dates_for_institute(selected_university, semester)
+    dates = get_semester_dates_for_institute(selected_university, semester, batch)
 
-    overview_tab, comparison_tab, detail_tab = st.tabs(["Series Overview", "University Comparison", "Course Breakdown"])
+    timeline_df = build_university_timeline_rows(all_universities, semester, batch)
+
+    if analysis_type == "delivered":
+        overview_tab, comparison_tab, timeline_tab, detail_tab = st.tabs(["Series Overview", "University Comparison", "University Timeline", "Course Breakdown"])
+    else:
+        overview_tab, comparison_tab, detail_tab = st.tabs(["Series Overview", "University Comparison", "Course Breakdown"])
+        timeline_tab = None
 
     with overview_tab:
         render_section_header("Series snapshot", "Each series groups universities by planned or delivered volume based on the selected sidebar logic.")
@@ -1429,6 +1603,27 @@ def main():
                 "Participation #": st.column_config.NumberColumn("Participation #", format="%.1f"),
             },
         )
+
+    if timeline_tab is not None:
+        with timeline_tab:
+            render_section_header("University timeline", "Timeline overview for delivered mode using the configured semester dates and NIAT slot plan by university.")
+            st.dataframe(
+                timeline_df,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "University": st.column_config.TextColumn("University"),
+                    "Start Date": st.column_config.TextColumn("Start Date"),
+                    "End Date": st.column_config.TextColumn("End Date"),
+                    "Delivery Mode": st.column_config.TextColumn("Delivery Mode"),
+                    "Working Days": st.column_config.NumberColumn("Working Days", format="%.1f"),
+                    "Total NIAT Slots": st.column_config.NumberColumn("Total NIAT Slots", format="%.1f"),
+                    "NIAT Assessment Slots": st.column_config.NumberColumn("NIAT Assessment Slots", format="%.1f"),
+                    "Net NIAT Executional Slots": st.column_config.NumberColumn("Net NIAT Executional Slots", format="%.1f"),
+                    "Total NIAT Executional Days": st.column_config.NumberColumn("Total NIAT Executional Days", format="%.1f"),
+                    "Net NIAT No. of Weeks": st.column_config.NumberColumn("Net NIAT No. of Weeks", format="%.1f"),
+                },
+            )
 
     with detail_tab:
         scope_label = selected_section if selected_section else "All sections"
