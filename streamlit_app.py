@@ -926,10 +926,10 @@ def build_university_metrics(data_df: pd.DataFrame, assessment_df: pd.DataFrame,
         course_records.append(
             {
                 "Course": course_name,
-                "Lecture Sessions": round(lecture["sessions"], 2) if lecture else 0,
-                "Practice Sessions": round(practice["sessions"], 2) if practice else 0,
-                "Exam Sessions": round(exam["sessions"], 2) if exam else 0,
-                "Total Sessions": round((lecture["sessions"] if lecture else 0) + (practice["sessions"] if practice else 0) + (exam["sessions"] if exam else 0), 2),
+                "Lecture Slots": round(lecture["sessions"], 2) if lecture else 0,
+                "Practice Slots": round(practice["sessions"], 2) if practice else 0,
+                "Exam Slots": round(exam["sessions"], 2) if exam else 0,
+                "Total Slots": round((lecture["sessions"] if lecture else 0) + (practice["sessions"] if practice else 0) + (exam["sessions"] if exam else 0), 2),
                 "Lecture %": round(lecture["completion"], 1) if lecture else None,
                 "Practice %": round(practice["completion"], 1) if practice else None,
                 "Exam %": round(exam["completion"], 1) if exam else None,
@@ -966,7 +966,7 @@ def filter_course_table(course_table: pd.DataFrame, semester: str):
     if filtered.empty:
         filtered = course_table.copy()
         hidden_count = 0
-    filtered = filtered.sort_values(["Total Sessions", "Course"], ascending=[False, True]).reset_index(drop=True)
+    filtered = filtered.sort_values(["Total Slots", "Course"], ascending=[False, True]).reset_index(drop=True)
     return filtered, hidden_count
 
 
@@ -1197,7 +1197,7 @@ def main():
         analysis_type = st.radio("Grouping Logic", ["design", "delivered"], format_func=lambda value: value.title())
         load_clicked = st.button("Load latest data", type="primary", use_container_width=True)
         st.markdown("---")
-        st.caption("Design groups universities by planned hours. Delivered groups them by completed sessions.")
+        st.caption("Design groups universities by planned hours. Delivered groups them by completed slots.")
         st.caption("Streamlit Cloud must have BigQuery credentials in app secrets.")
 
     if load_clicked or "semester_df" not in st.session_state or st.session_state.get("batch") != batch or st.session_state.get("semester") != semester:
@@ -1234,7 +1234,7 @@ def main():
                 "Series": series["name"],
                 "Universities": len(data["universities"]),
                 "Students": int(data["totalStudents"]),
-                "Avg Sessions": round(data["avgSessions"], 1),
+                "Avg Slots": round(data["avgSessions"], 1),
                 "Avg Delivery %": round(data["avgOverallCompletion"], 1),
                 "Avg Score %": round(data["avgAssessmentScore"] * 100, 1) if data["avgAssessmentScore"] is not None else None,
                 "Avg Allotted Hours": round(data["avgAllottedHours"], 1) if data["avgAllottedHours"] else None,
@@ -1247,7 +1247,7 @@ def main():
     score_values = [item["avgAssessmentScore"] * 100 for item in all_universities if item["avgAssessmentScore"] is not None]
     avg_score = sum(score_values) / len(score_values) if score_values else None
     last_updated = build_last_updated_label(semester_df, assessment_df)
-    analysis_label = "Planned schedule bands" if analysis_type == "design" else "Delivered session bands"
+    analysis_label = "Planned schedule bands" if analysis_type == "design" else "Delivered slot bands"
 
     st.markdown(
         f"""
@@ -1269,7 +1269,6 @@ def main():
     render_metric_row(
         [
             {"label": "Universities", "value": format_metric_value(semester_df["institute"].nunique(), decimals=0), "help": "Institutions with schedule data in the current view."},
-            {"label": "Sections", "value": format_metric_value(semester_df["section"].nunique(), decimals=0), "help": "Distinct sections covered by the loaded semester data."},
             {"label": "Students", "value": format_metric_value(total_students, decimals=0), "help": "Summed section roster size using the latest section-level student counts."},
             {"label": "Avg Delivery %", "value": format_metric_value(avg_delivery, suffix="%"), "help": "Average university delivery across lecture, practice, and exam completion."},
             {"label": "Avg Score %", "value": format_metric_value(avg_score, suffix="%"), "help": "Average assessment score for universities with assessment data."},
@@ -1296,7 +1295,7 @@ def main():
                 "University": item["name"],
                 "Sections": item["sectionCount"],
                 "Allotted Hours": round(item["allottedHours"], 1) if item["allottedHours"] is not None else None,
-                "Avg Sessions": round(item["avgSessions"], 1),
+                "Avg Slots": round(item["avgSessions"], 1),
                 "Lecture %": round(item["avgLectureCompletion"], 1),
                 "Practice %": round(item["avgPracticeCompletion"], 1),
                 "Exam %": round(item["avgExamCompletion"], 1),
@@ -1335,7 +1334,7 @@ def main():
                 "Series": st.column_config.TextColumn("Series"),
                 "Universities": st.column_config.NumberColumn("Universities", format="%d"),
                 "Students": st.column_config.NumberColumn("Students", format="%d"),
-                "Avg Sessions": st.column_config.NumberColumn("Avg Sessions", format="%.1f"),
+                "Avg Slots": st.column_config.NumberColumn("Avg Slots", format="%.1f"),
                 "Avg Delivery %": st.column_config.NumberColumn("Avg Delivery %", format="%.1f%%"),
                 "Avg Score %": st.column_config.NumberColumn("Avg Score %", format="%.1f%%"),
                 "Avg Allotted Hours": st.column_config.NumberColumn("Avg Allotted Hours", format="%.1f"),
@@ -1352,7 +1351,7 @@ def main():
                 "University": st.column_config.TextColumn("University"),
                 "Sections": st.column_config.NumberColumn("Sections", format="%d"),
                 "Allotted Hours": st.column_config.NumberColumn("Allotted Hours", format="%.1f"),
-                "Avg Sessions": st.column_config.NumberColumn("Avg Sessions", format="%.1f"),
+                "Avg Slots": st.column_config.NumberColumn("Avg Slots", format="%.1f"),
                 "Lecture %": st.column_config.NumberColumn("Lecture %", format="%.1f%%"),
                 "Practice %": st.column_config.NumberColumn("Practice %", format="%.1f%%"),
                 "Exam %": st.column_config.NumberColumn("Exam %", format="%.1f%%"),
@@ -1379,7 +1378,7 @@ def main():
             [
                 {"label": "Courses Shown", "value": format_metric_value(len(course_table), decimals=0), "help": "Visible courses after removing non-core subjects from the breakdown."},
                 {"label": "Students", "value": format_metric_value(university_metrics["classSize"], decimals=0), "help": "Section roster size for the selected scope."},
-                {"label": "Total Sessions", "value": format_metric_value(university_metrics["totalSessions"], decimals=1), "help": "Combined lecture, practice, and exam sessions."},
+                {"label": "Total Slots", "value": format_metric_value(university_metrics["totalSessions"], decimals=1), "help": "Combined lecture, practice, and exam slots."},
                 {"label": "Avg Delivery %", "value": format_metric_value(university_metrics["overallCompletion"], suffix="%"), "help": "Overall completion across all session types in this scope."},
             ]
         )
@@ -1407,10 +1406,10 @@ def main():
             hide_index=True,
             column_config={
                 "Course": st.column_config.TextColumn("Course"),
-                "Lecture Sessions": st.column_config.NumberColumn("Lecture Sessions", format="%.1f"),
-                "Practice Sessions": st.column_config.NumberColumn("Practice Sessions", format="%.1f"),
-                "Exam Sessions": st.column_config.NumberColumn("Exam Sessions", format="%.1f"),
-                "Total Sessions": st.column_config.NumberColumn("Total Sessions", format="%.1f"),
+                "Lecture Slots": st.column_config.NumberColumn("Lecture Slots", format="%.1f"),
+                "Practice Slots": st.column_config.NumberColumn("Practice Slots", format="%.1f"),
+                "Exam Slots": st.column_config.NumberColumn("Exam Slots", format="%.1f"),
+                "Total Slots": st.column_config.NumberColumn("Total Slots", format="%.1f"),
                 "Lecture %": st.column_config.NumberColumn("Lecture %", format="%.1f%%"),
                 "Practice %": st.column_config.NumberColumn("Practice %", format="%.1f%%"),
                 "Exam %": st.column_config.NumberColumn("Exam %", format="%.1f%%"),
