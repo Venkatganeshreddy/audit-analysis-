@@ -1303,6 +1303,8 @@ def main():
     avg_delivery = sum(item["avgOverallCompletion"] for item in all_universities) / len(all_universities)
     score_values = [item["avgAssessmentScore"] * 100 for item in all_universities if item["avgAssessmentScore"] is not None]
     avg_score = sum(score_values) / len(score_values) if score_values else None
+    allotted_values = [item["allottedHours"] for item in all_universities if item["allottedHours"] is not None]
+    avg_allotted_hours = sum(allotted_values) / len(allotted_values) if allotted_values else None
     last_updated = build_last_updated_label(semester_df, assessment_df)
     analysis_label = "Planned schedule bands" if analysis_type == "design" else "Delivered slot bands"
 
@@ -1323,14 +1325,19 @@ def main():
         unsafe_allow_html=True,
     )
 
-    render_metric_row(
+    top_metrics = [
+        {"label": "Universities", "value": format_metric_value(semester_df["institute"].nunique(), decimals=0), "help": "Institutions with schedule data in the current view."},
+        {"label": "Students", "value": format_metric_value(total_students, decimals=0), "help": "Summed section roster size using the latest section-level student counts."},
+    ]
+    if analysis_type == "design":
+        top_metrics.append({"label": "Avg Allotted Hours", "value": format_metric_value(avg_allotted_hours, decimals=1), "help": "Average planned hours for universities in the selected design view."})
+    top_metrics.extend(
         [
-            {"label": "Universities", "value": format_metric_value(semester_df["institute"].nunique(), decimals=0), "help": "Institutions with schedule data in the current view."},
-            {"label": "Students", "value": format_metric_value(total_students, decimals=0), "help": "Summed section roster size using the latest section-level student counts."},
             {"label": "Avg Delivery %", "value": format_metric_value(avg_delivery, suffix="%"), "help": "Average university delivery across lecture, practice, and exam completion."},
             {"label": "Avg Score %", "value": format_metric_value(avg_score, suffix="%"), "help": "Average assessment score for universities with assessment data."},
         ]
     )
+    render_metric_row(top_metrics)
 
     render_section_header("Focus selection", "Choose the series, university, and section scope before reviewing the tables below.")
     filter_col_1, filter_col_2, filter_col_3 = st.columns([1, 1.35, 1])
@@ -1375,14 +1382,19 @@ def main():
 
     with overview_tab:
         render_section_header("Series snapshot", "Each series groups universities by planned or delivered volume based on the selected sidebar logic.")
-        render_metric_row(
+        series_metrics = [
+            {"label": "Selected Series", "value": selected_series, "help": "Current benchmark band used for comparison."},
+            {"label": "Universities in Series", "value": format_metric_value(len(universities), decimals=0), "help": "Institutions included in the selected series."},
+        ]
+        if analysis_type == "design":
+            series_metrics.append({"label": "Series Allotted Hours", "value": format_metric_value(series_summary["avgAllottedHours"], decimals=1), "help": "Average planned hours for universities in this design series."})
+        series_metrics.extend(
             [
-                {"label": "Selected Series", "value": selected_series, "help": "Current benchmark band used for comparison."},
-                {"label": "Universities in Series", "value": format_metric_value(len(universities), decimals=0), "help": "Institutions included in the selected series."},
                 {"label": "Series Delivery %", "value": format_metric_value(series_summary["avgOverallCompletion"], suffix="%"), "help": "Average delivery across universities in this series."},
                 {"label": "Series Score %", "value": format_metric_value(series_summary["avgAssessmentScore"] * 100 if series_summary["avgAssessmentScore"] is not None else None, suffix="%"), "help": "Average assessment score for universities in this series."},
             ]
         )
+        render_metric_row(series_metrics)
         st.dataframe(
             series_df,
             use_container_width=True,
