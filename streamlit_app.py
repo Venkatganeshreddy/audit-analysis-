@@ -1669,8 +1669,14 @@ def main():
 
     if analysis_type == "overview" and current_view == "University Overview":
         render_section_header("University overview", "Filter by delivery mode and click a university row to open its course breakdown.")
+        delivery_mode_map = {
+            "All": None,
+            "Full": "Full Delivery",
+            "Co": "Co Delivery",
+            "Hybrid": "Hybrid Delivery",
+        }
         available_modes = set(overview_df["Delivery Mode"].dropna().tolist())
-        delivery_mode_options = ["All"] + [value for value in ["Full", "Co", "Hybrid"] if value in available_modes]
+        delivery_mode_options = ["All"] + [label for label, value in delivery_mode_map.items() if value and value in available_modes]
         if st.session_state.get("overview_delivery_mode") not in delivery_mode_options:
             st.session_state["overview_delivery_mode"] = "All"
         filter_labels = ["All", "Full", "Co", "Hybrid"]
@@ -1684,9 +1690,10 @@ def main():
                     st.session_state["overview_delivery_mode"] = label
                     st.rerun()
         selected_delivery_mode = st.session_state.get("overview_delivery_mode", "All")
+        selected_delivery_mode_value = delivery_mode_map.get(selected_delivery_mode)
         filtered_overview_df = overview_df.copy()
-        if selected_delivery_mode != "All":
-            filtered_overview_df = filtered_overview_df[filtered_overview_df["Delivery Mode"] == selected_delivery_mode].reset_index(drop=True)
+        if selected_delivery_mode_value:
+            filtered_overview_df = filtered_overview_df[filtered_overview_df["Delivery Mode"] == selected_delivery_mode_value].reset_index(drop=True)
         if filtered_overview_df.empty:
             st.caption("No universities match the selected delivery mode.")
         else:
