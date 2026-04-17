@@ -1357,166 +1357,467 @@ def inject_custom_css():
     st.markdown(
         """
         <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+            :root {
+                --primary: #6366f1;
+                --primary-dark: #4f46e5;
+                --primary-light: #818cf8;
+                --success: #10b981;
+                --warning: #f59e0b;
+                --danger: #ef4444;
+                --info: #3b82f6;
+                --bg-dark: #0f172a;
+                --bg-card: #1e293b;
+                --text-primary: #f1f5f9;
+                --text-secondary: #94a3b8;
+                --border: rgba(148, 163, 184, 0.1);
+            }
+
+            * {
+                font-family: 'Inter', sans-serif !important;
+            }
+
             .stApp {
-                background: linear-gradient(180deg, #f8fafc 0%, #eef4ff 100%);
-                color: #0f172a;
+                background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
+                background-attachment: fixed;
+                color: var(--text-primary);
             }
+
             .block-container {
-                max-width: 1320px;
-                padding-top: 1.4rem;
-                padding-bottom: 2.5rem;
+                max-width: 1400px;
+                padding-top: 1rem;
+                padding-bottom: 2rem;
             }
+
+            /* Header */
             [data-testid="stHeader"] {
-                background: rgba(248, 250, 252, 0.9);
-                backdrop-filter: blur(10px);
-                border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+                background: rgba(15, 23, 42, 0.8);
+                backdrop-filter: blur(20px);
+                border-bottom: 1px solid var(--border);
             }
-            [data-testid="stToolbar"] {
-                right: 1rem;
-            }
+
+            /* Sidebar */
             [data-testid="stSidebar"] {
-                background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
-                border-right: 1px solid rgba(148, 163, 184, 0.2);
+                background: linear-gradient(180deg, #0f172a 0%, #1e1b4b 100%);
+                border-right: 1px solid var(--border);
             }
-            [data-testid="stSidebar"] * {
-                color: #e2e8f0;
+
+            [data-testid="stSidebar"] .stMarkdown {
+                color: var(--text-primary);
             }
-            [data-testid="stSidebar"] [data-baseweb="select"] > div,
+
+            [data-testid="stSidebar"] [data-baseweb="select"] > div {
+                background: rgba(30, 41, 59, 0.8);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                color: var(--text-primary);
+            }
+
             [data-testid="stSidebar"] .stRadio > div {
-                background: rgba(15, 23, 42, 0.58);
-                border: 1px solid rgba(148, 163, 184, 0.18);
-                border-radius: 14px;
+                background: rgba(30, 41, 59, 0.5);
+                border-radius: 12px;
+                padding: 8px;
             }
+
             [data-testid="stSidebar"] .stButton button {
-                background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+                background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
                 border: none;
+                border-radius: 12px;
                 color: white;
                 font-weight: 600;
+                padding: 0.75rem 1.5rem;
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
             }
+
+            [data-testid="stSidebar"] .stButton button:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
+            }
+
+            /* Select boxes */
             [data-baseweb="select"] > div {
-                background: rgba(255, 255, 255, 0.95);
-                border: 1px solid rgba(148, 163, 184, 0.24);
-                border-radius: 14px;
-                min-height: 48px;
-                box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
+                background: rgba(30, 41, 59, 0.8);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                color: var(--text-primary);
             }
-            .stSelectbox label p,
-            .stRadio label p {
+
+            .stSelectbox label p, .stRadio label p {
                 font-weight: 600;
+                color: var(--text-primary);
             }
-            .hero-card {
-                background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 55%, #38bdf8 100%);
+
+            /* Hero Section */
+            .hero-container {
+                background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(79, 70, 229, 0.1) 100%);
+                border: 1px solid rgba(99, 102, 241, 0.2);
                 border-radius: 24px;
-                color: white;
-                padding: 28px 30px;
-                box-shadow: 0 20px 45px rgba(15, 23, 42, 0.18);
-                margin-bottom: 12px;
+                padding: 2rem;
+                margin-bottom: 2rem;
+                backdrop-filter: blur(10px);
             }
-            .hero-eyebrow {
-                font-size: 0.8rem;
-                font-weight: 700;
-                letter-spacing: 0.12em;
-                opacity: 0.8;
+
+            .hero-badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                background: rgba(99, 102, 241, 0.2);
+                border: 1px solid rgba(99, 102, 241, 0.3);
+                border-radius: 50px;
+                padding: 6px 14px;
+                font-size: 0.75rem;
+                font-weight: 600;
+                color: var(--primary-light);
                 text-transform: uppercase;
-                margin-bottom: 8px;
+                letter-spacing: 0.5px;
+                margin-bottom: 1rem;
             }
+
+            .hero-badge::before {
+                content: '';
+                width: 8px;
+                height: 8px;
+                background: var(--success);
+                border-radius: 50%;
+                animation: pulse 2s infinite;
+            }
+
+            @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.5; }
+            }
+
             .hero-title {
-                font-size: 2rem;
-                font-weight: 700;
-                margin: 0;
+                font-size: 2.5rem;
+                font-weight: 800;
+                background: linear-gradient(135deg, #fff 0%, #c7d2fe 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+                margin-bottom: 0.75rem;
             }
+
             .hero-subtitle {
-                margin-top: 10px;
-                font-size: 0.98rem;
+                color: var(--text-secondary);
+                font-size: 1.1rem;
                 line-height: 1.6;
-                max-width: 900px;
-                color: rgba(255, 255, 255, 0.88);
+                max-width: 800px;
             }
+
             .hero-meta {
                 display: flex;
                 flex-wrap: wrap;
-                gap: 10px;
-                margin-top: 18px;
+                gap: 12px;
+                margin-top: 1.5rem;
             }
+
             .hero-pill {
-                background: rgba(255, 255, 255, 0.14);
-                border: 1px solid rgba(255, 255, 255, 0.16);
-                border-radius: 999px;
-                padding: 8px 12px;
-                font-size: 0.85rem;
-                font-weight: 600;
+                background: rgba(30, 41, 59, 0.8);
+                border: 1px solid var(--border);
+                border-radius: 50px;
+                padding: 8px 16px;
+                font-size: 0.875rem;
+                font-weight: 500;
+                color: var(--text-primary);
+                display: flex;
+                align-items: center;
+                gap: 6px;
             }
-            .section-heading {
-                margin: 0 0 2px 0;
-                font-size: 1.2rem;
-                font-weight: 700;
-                color: #0f172a;
+
+            .hero-pill-icon {
+                width: 16px;
+                height: 16px;
+                opacity: 0.7;
             }
-            .section-caption {
-                color: #475569;
-                margin-bottom: 12px;
-                font-size: 0.94rem;
+
+            /* Metric Cards */
+            .metric-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                gap: 1rem;
+                margin-bottom: 2rem;
             }
+
             .metric-card {
-                background: rgba(255, 255, 255, 0.92);
-                border: 1px solid rgba(148, 163, 184, 0.22);
-                border-radius: 20px;
-                padding: 18px 18px 16px 18px;
-                box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
-                min-height: 118px;
-            }
-            .metric-label {
-                color: #475569;
-                font-size: 0.86rem;
-                font-weight: 600;
-                margin-bottom: 10px;
-            }
-            .metric-value {
-                color: #0f172a;
-                font-size: 1.8rem;
-                font-weight: 700;
-                line-height: 1.1;
-                margin-bottom: 8px;
-            }
-            .metric-help {
-                color: #64748b;
-                font-size: 0.8rem;
-                line-height: 1.5;
-            }
-            .info-card {
-                background: rgba(255, 255, 255, 0.88);
-                border: 1px solid rgba(148, 163, 184, 0.22);
-                border-radius: 18px;
-                padding: 14px 16px;
-                color: #334155;
-                margin-bottom: 12px;
-            }
-            div[data-testid="stDataFrame"] {
-                border: 1px solid rgba(148, 163, 184, 0.24);
-                border-radius: 18px;
+                background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(30, 41, 59, 0.6) 100%);
+                border: 1px solid var(--border);
+                border-radius: 16px;
+                padding: 1.25rem;
+                position: relative;
                 overflow: hidden;
-                box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
-                background: rgba(255, 255, 255, 0.94);
+                transition: all 0.3s ease;
             }
+
+            .metric-card:hover {
+                transform: translateY(-4px);
+                border-color: rgba(99, 102, 241, 0.3);
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            }
+
+            .metric-card::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 3px;
+                background: linear-gradient(90deg, var(--primary), var(--primary-light));
+            }
+
+            .metric-card.success::before { background: linear-gradient(90deg, var(--success), #34d399); }
+            .metric-card.warning::before { background: linear-gradient(90deg, var(--warning), #fbbf24); }
+            .metric-card.danger::before { background: linear-gradient(90deg, var(--danger), #f87171); }
+            .metric-card.info::before { background: linear-gradient(90deg, var(--info), #60a5fa); }
+
+            .metric-icon {
+                width: 40px;
+                height: 40px;
+                border-radius: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-bottom: 0.75rem;
+                font-size: 1.25rem;
+            }
+
+            .metric-icon.primary { background: rgba(99, 102, 241, 0.2); }
+            .metric-icon.success { background: rgba(16, 185, 129, 0.2); }
+            .metric-icon.warning { background: rgba(245, 158, 11, 0.2); }
+            .metric-icon.danger { background: rgba(239, 68, 68, 0.2); }
+            .metric-icon.info { background: rgba(59, 130, 246, 0.2); }
+
+            .metric-label {
+                color: var(--text-secondary);
+                font-size: 0.875rem;
+                font-weight: 500;
+                margin-bottom: 0.5rem;
+            }
+
+            .metric-value {
+                color: var(--text-primary);
+                font-size: 1.75rem;
+                font-weight: 700;
+                line-height: 1.2;
+            }
+
+            .metric-subtext {
+                color: var(--text-secondary);
+                font-size: 0.75rem;
+                margin-top: 0.5rem;
+            }
+
+            /* Section Headers */
+            .section-header {
+                margin-bottom: 1.5rem;
+            }
+
+            .section-title {
+                font-size: 1.25rem;
+                font-weight: 700;
+                color: var(--text-primary);
+                margin-bottom: 0.5rem;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            .section-title-icon {
+                width: 28px;
+                height: 28px;
+                background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 0.875rem;
+            }
+
+            .section-caption {
+                color: var(--text-secondary);
+                font-size: 0.95rem;
+            }
+
+            /* Data Tables */
+            div[data-testid="stDataFrame"] {
+                background: rgba(30, 41, 59, 0.5);
+                border: 1px solid var(--border);
+                border-radius: 16px;
+                overflow: hidden;
+            }
+
+            div[data-testid="stDataFrame"] [data-testid="stTable"] {
+                background: transparent;
+            }
+
+            /* Tabs */
             div[data-testid="stTabs"] [data-baseweb="tab-list"] {
-                gap: 0.75rem;
-                margin-bottom: 1rem;
+                gap: 0.5rem;
+                margin-bottom: 1.5rem;
+                background: rgba(30, 41, 59, 0.5);
+                padding: 0.5rem;
+                border-radius: 12px;
+                border: 1px solid var(--border);
             }
+
             div[data-testid="stTabs"] button {
                 font-weight: 600;
-                border: 1px solid rgba(148, 163, 184, 0.24);
-                border-radius: 999px;
-                padding: 0.55rem 1rem;
-                background: rgba(255, 255, 255, 0.92);
-                color: #334155;
+                border: none;
+                border-radius: 8px;
+                padding: 0.6rem 1.2rem;
+                background: transparent;
+                color: var(--text-secondary);
+                transition: all 0.2s ease;
             }
+
+            div[data-testid="stTabs"] button:hover {
+                background: rgba(99, 102, 241, 0.1);
+                color: var(--text-primary);
+            }
+
             div[data-testid="stTabs"] button[aria-selected="true"] {
-                background: #eff6ff;
-                color: #1d4ed8;
-                border-color: rgba(59, 130, 246, 0.35);
+                background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+                color: white;
+                box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
             }
+
             div[data-testid="stTabs"] [data-baseweb="tab-highlight"] {
                 display: none;
+            }
+
+            /* Filters */
+            .filter-container {
+                background: rgba(30, 41, 59, 0.5);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                padding: 1rem;
+                margin-bottom: 1.5rem;
+            }
+
+            /* Info Cards */
+            .info-card {
+                background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
+                border: 1px solid rgba(59, 130, 246, 0.2);
+                border-radius: 12px;
+                padding: 1rem 1.25rem;
+                color: var(--text-primary);
+                margin-bottom: 1rem;
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+            }
+
+            .info-card-icon {
+                width: 36px;
+                height: 36px;
+                background: rgba(59, 130, 246, 0.2);
+                border-radius: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            /* Back Button */
+            .back-button {
+                background: rgba(30, 41, 59, 0.8);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 0.5rem 1rem;
+                color: var(--text-primary);
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            .back-button:hover {
+                background: rgba(99, 102, 241, 0.2);
+                border-color: rgba(99, 102, 241, 0.4);
+            }
+
+            /* Delivery Mode Buttons */
+            .delivery-filter {
+                display: flex;
+                gap: 0.5rem;
+                flex-wrap: wrap;
+                margin-bottom: 1rem;
+            }
+
+            /* Status Badges */
+            .status-badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+                padding: 4px 10px;
+                border-radius: 50px;
+                font-size: 0.75rem;
+                font-weight: 600;
+            }
+
+            .status-badge.success {
+                background: rgba(16, 185, 129, 0.15);
+                color: #34d399;
+            }
+
+            .status-badge.warning {
+                background: rgba(245, 158, 11, 0.15);
+                color: #fbbf24;
+            }
+
+            .status-badge.danger {
+                background: rgba(239, 68, 68, 0.15);
+                color: #f87171;
+            }
+
+            /* Loading Animation */
+            @keyframes shimmer {
+                0% { background-position: -1000px 0; }
+                100% { background-position: 1000px 0; }
+            }
+
+            .loading-shimmer {
+                background: linear-gradient(90deg, rgba(30,41,59,0.5) 25%, rgba(30,41,59,0.8) 50%, rgba(30,41,59,0.5) 75%);
+                background-size: 1000px 100%;
+                animation: shimmer 2s infinite;
+            }
+
+            /* Scrollbar */
+            ::-webkit-scrollbar {
+                width: 8px;
+                height: 8px;
+            }
+
+            ::-webkit-scrollbar-track {
+                background: rgba(30, 41, 59, 0.3);
+                border-radius: 4px;
+            }
+
+            ::-webkit-scrollbar-thumb {
+                background: rgba(99, 102, 241, 0.5);
+                border-radius: 4px;
+            }
+
+            ::-webkit-scrollbar-thumb:hover {
+                background: rgba(99, 102, 241, 0.7);
+            }
+
+            /* Radio buttons */
+            .stRadio > div {
+                flex-direction: row;
+                gap: 1rem;
+            }
+
+            /* Responsive */
+            @media (max-width: 768px) {
+                .hero-title {
+                    font-size: 1.75rem;
+                }
+                .metric-grid {
+                    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+                }
             }
         </style>
         """,
@@ -1524,56 +1825,119 @@ def inject_custom_css():
     )
 
 
-def render_section_header(title: str, caption: str):
-    st.markdown(f"<div class='section-heading'>{title}</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='section-caption'>{caption}</div>", unsafe_allow_html=True)
-
-
-def render_metric_row(items):
-    columns = st.columns(len(items))
-    for column, item in zip(columns, items):
-        help_text = f"<div class='metric-help'>{item.get('help', '')}</div>" if item.get("help") else ""
-        column.markdown(
-            f"""
-            <div class="metric-card">
-                <div class="metric-label">{item['label']}</div>
-                <div class="metric-value">{item['value']}</div>
-                {help_text}
+def render_hero(batch, semester, analysis_label, last_updated):
+    st.markdown(
+        f"""
+        <div class="hero-container">
+            <div class="hero-badge">Audit Dashboard</div>
+            <h1 class="hero-title">NIAT Analytics Platform</h1>
+            <div class="hero-subtitle">
+                Professional analytics dashboard for delivery and assessment tracking across universities.
+                Monitor completion rates, scores, and performance metrics in real-time.
             </div>
-            """,
-            unsafe_allow_html=True,
-        )
+            <div class="hero-meta">
+                <div class="hero-pill">
+                    <span>📅</span> Batch: {batch}
+                </div>
+                <div class="hero-pill">
+                    <span>🎓</span> Semester: {semester}
+                </div>
+                <div class="hero-pill">
+                    <span>📊</span> View: {analysis_label}
+                </div>
+                <div class="hero-pill">
+                    <span>🔄</span> Updated: {last_updated}
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_metric_cards(metrics):
+    cols = st.columns(len(metrics))
+    for col, metric in zip(cols, metrics):
+        card_class = metric.get('type', 'primary')
+        icon = metric.get('icon', '📊')
+        with col:
+            st.markdown(
+                f"""
+                <div class="metric-card {card_class}">
+                    <div class="metric-icon {card_class}">{icon}</div>
+                    <div class="metric-label">{metric['label']}</div>
+                    <div class="metric-value">{metric['value']}</div>
+                    {f"<div class='metric-subtext'>{metric['help']}</div>" if metric.get('help') else ""}
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+
+def render_section_header(title, caption, icon="📈"):
+    st.markdown(
+        f"""
+        <div class="section-header">
+            <div class="section-title">
+                <div class="section-title-icon">{icon}</div>
+                {title}
+            </div>
+            <div class="section-caption">{caption}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def main():
-    st.set_page_config(page_title="NIAT Analytics Streamlit", layout="wide")
+    st.set_page_config(
+        page_title="NIAT Analytics | Audit Dashboard",
+        page_icon="📊",
+        layout="wide",
+        initial_sidebar_state="expanded"
+    )
     inject_custom_css()
 
     with st.sidebar:
-        st.markdown("## Audit Analysis")
-        st.caption("Live Streamlit dashboard for delivery and assessment tracking.")
-        batch = st.selectbox("Batch", ["NIAT 24", "NIAT 25", "NIAT 26"], index=1)
+        st.markdown("### 🎓 NIAT Analytics")
+        st.markdown("<p style='color: #94a3b8; font-size: 0.875rem;'>Professional audit dashboard for delivery and assessment tracking.</p>", unsafe_allow_html=True)
+        st.markdown("---")
+
+        batch = st.selectbox("📅 Select Batch", ["NIAT 24", "NIAT 25", "NIAT 26"], index=1)
         available_semesters = get_available_semesters_for_batch(batch)
         if not available_semesters:
             st.warning(f"No configured semesters are available yet for {batch}.")
-            st.caption("Future batches stay hidden until their semester windows start, so the dashboard avoids irrelevant fetches.")
+            st.caption("Future batches stay hidden until their semester windows start.")
             st.stop()
         default_semester = available_semesters[-1]
         previous_batch = st.session_state.get("batch")
         previous_semester = st.session_state.get("semester")
         if previous_batch == batch and previous_semester in available_semesters:
             default_semester = previous_semester
-        semester = st.selectbox("Semester", available_semesters, index=available_semesters.index(default_semester))
+        semester = st.selectbox("🎓 Select Semester", available_semesters, index=available_semesters.index(default_semester))
         st.caption(f"Available for {batch}: {', '.join(available_semesters)}")
-        analysis_type = st.radio("Grouping Logic", ["overview", "design", "delivered"], format_func=lambda value: value.title())
-        load_clicked = st.button("Load latest data", type="primary", use_container_width=True)
+
         st.markdown("---")
-        st.caption("Overview starts with the university timeline table and drills into a single university course breakdown.")
-        st.caption("Design groups universities by planned hours. Delivered groups them by completed slots.")
-        st.caption("Streamlit Cloud must have BigQuery credentials in app secrets.")
+        analysis_type = st.radio(
+            "📊 Grouping Logic",
+            ["overview", "design", "delivered"],
+            format_func=lambda value: {"overview": "University Overview", "design": "Schedule Bands", "delivered": "Delivered Bands"}[value]
+        )
+
+        load_clicked = st.button("🔄 Load Latest Data", type="primary", use_container_width=True)
+
+        st.markdown("---")
+        with st.expander("ℹ️ About"):
+            st.markdown("""
+            **Overview**: University timeline table with course breakdown drill-down.
+
+            **Design**: Groups universities by planned hours.
+
+            **Delivered**: Groups universities by completed slots.
+            """)
 
     if load_clicked or "semester_df" not in st.session_state or st.session_state.get("batch") != batch or st.session_state.get("semester") != semester:
-        with st.spinner("Fetching data from BigQuery..."):
+        with st.spinner("🔄 Fetching data from BigQuery..."):
             semester_df = fetch_semester_data(batch, semester)
             assessment_df = fetch_assessment_data(batch, semester)
             st.session_state["semester_df"] = semester_df
@@ -1585,14 +1949,14 @@ def main():
     assessment_df = st.session_state.get("assessment_df", pd.DataFrame())
 
     if semester_df.empty:
-        st.warning("No semester data returned. Check the selected filters and Streamlit Cloud secrets.")
+        st.warning("⚠️ No semester data returned. Check the selected filters and Streamlit Cloud secrets.")
         st.stop()
 
     series_analysis_type = "delivered" if analysis_type == "overview" else analysis_type
     series_data = calculate_series_data(semester_df, assessment_df, series_analysis_type, semester)
     active_series = [series["name"] for series in SERIES_RANGES if series_data[series["name"]]["universities"]]
     if not active_series:
-        st.warning("No active series available for the selected filters.")
+        st.warning("⚠️ No active series available for the selected filters.")
         st.stop()
 
     series_rows = []
@@ -1623,27 +1987,12 @@ def main():
     avg_allotted_hours = sum(allotted_values) / len(allotted_values) if allotted_values else None
     last_updated = build_last_updated_label(semester_df, assessment_df)
     analysis_label = {
-        "overview": "University overview",
-        "design": "Planned schedule bands",
-        "delivered": "Delivered slot bands",
+        "overview": "University Overview",
+        "design": "Schedule Bands",
+        "delivered": "Delivered Bands",
     }[analysis_type]
 
-    st.markdown(
-        f"""
-        <div class="hero-card">
-            <div class="hero-eyebrow">Audit Dashboard</div>
-            <h1 class="hero-title">NIAT delivery and assessment view</h1>
-            <div class="hero-subtitle">Cleaned Streamlit layout focused on series performance, university delivery, and course-level completion. Course tables hide non-core subjects where applicable so the breakdown stays readable.</div>
-            <div class="hero-meta">
-                <div class="hero-pill">Batch: {batch}</div>
-                <div class="hero-pill">Semester: {semester}</div>
-                <div class="hero-pill">Grouping: {analysis_label}</div>
-                <div class="hero-pill">Last updated: {last_updated}</div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    render_hero(batch, semester, analysis_label, last_updated)
 
     if analysis_type == "overview":
         if st.session_state.get("analysis_type_mode") != "overview" and "pending_current_view" not in st.session_state:
@@ -1662,20 +2011,19 @@ def main():
             st.session_state["current_view"] = "University Overview"
     st.session_state["analysis_type_mode"] = analysis_type
 
+    # Top metrics
     top_metrics = [
-        {"label": "Universities", "value": format_metric_value(semester_df["institute"].nunique(), decimals=0), "help": "Institutions with schedule data in the current view."},
-        {"label": "Students", "value": format_metric_value(total_students, decimals=0), "help": "Summed section roster size using the latest section-level student counts."},
+        {"label": "Universities", "value": format_metric_value(semester_df["institute"].nunique(), decimals=0), "icon": "🏛️", "type": "info", "help": "Institutions with schedule data"},
+        {"label": "Students", "value": format_metric_value(total_students, decimals=0), "icon": "👥", "type": "primary", "help": "Total enrolled students"},
     ]
     if analysis_type == "design":
-        top_metrics.append({"label": "Avg Allotted Hours", "value": format_metric_value(avg_allotted_hours, decimals=1), "help": "Average planned hours for universities in the selected design view."})
-    top_metrics.extend(
-        [
-            {"label": "Avg Delivery %", "value": format_metric_value(avg_delivery, suffix="%"), "help": "Average university delivery across lecture, practice, and exam completion."},
-            {"label": "Avg Score %", "value": format_metric_value(avg_score, suffix="%"), "help": "Average assessment score for universities with assessment data."},
-        ]
-    )
+        top_metrics.append({"label": "Avg Allotted Hours", "value": format_metric_value(avg_allotted_hours, decimals=1), "icon": "⏱️", "type": "warning", "help": "Average planned hours"})
+    top_metrics.extend([
+        {"label": "Avg Delivery %", "value": format_metric_value(avg_delivery, suffix="%"), "icon": "✅", "type": "success", "help": "Average completion rate"},
+        {"label": "Avg Score %", "value": format_metric_value(avg_score, suffix="%"), "icon": "🎯", "type": "primary", "help": "Average assessment score"},
+    ])
     if not (analysis_type == "overview" and st.session_state.get("current_view") == "Course Breakdown"):
-        render_metric_row(top_metrics)
+        render_metric_cards(top_metrics)
 
     selected_series = None
     series_summary = None
@@ -1683,7 +2031,7 @@ def main():
         universities = sorted(all_universities, key=lambda item: item["name"])
         university_options = [item["name"] for item in universities]
         if not university_options:
-            st.warning("No university data available for overview.")
+            st.warning("⚠️ No university data available for overview.")
             st.stop()
         if st.session_state.get("selected_university") not in university_options:
             st.session_state["selected_university"] = university_options[0]
@@ -1694,12 +2042,12 @@ def main():
             st.session_state["selected_section_label"] = "All Sections"
         selected_section_label = st.session_state.get("selected_section_label", "All Sections")
     else:
-        render_section_header("Focus selection", "Choose the series, university, and section scope before reviewing the tables below.")
+        render_section_header("Focus Selection", "Choose the series, university, and section scope before reviewing the tables below.", icon="🎯")
         if st.session_state.get("selected_series") not in active_series:
             st.session_state["selected_series"] = active_series[0]
         filter_col_1, filter_col_2, filter_col_3 = st.columns([1, 1.35, 1])
         with filter_col_1:
-            selected_series = st.selectbox("Series", active_series, key="selected_series")
+            selected_series = st.selectbox("📊 Series", active_series, key="selected_series")
         series_summary = series_data[selected_series]
         universities = sorted(series_summary["universities"], key=lambda item: item["name"])
         university_options = [item["name"] for item in universities]
@@ -1715,11 +2063,11 @@ def main():
         sections = sorted(semester_df[semester_df["institute"] == selected_university]["section"].dropna().unique().tolist())
         section_options = ["All Sections"] + sections if sections else ["All Sections"]
         with filter_col_2:
-            selected_university = st.selectbox("University", university_options, key="selected_university")
+            selected_university = st.selectbox("🏛️ University", university_options, key="selected_university")
         if st.session_state.get("selected_section_label") not in section_options:
             st.session_state["selected_section_label"] = "All Sections"
         with filter_col_3:
-            selected_section_label = st.selectbox("Section", section_options, key="selected_section_label")
+            selected_section_label = st.selectbox("📚 Section", section_options, key="selected_section_label")
     selected_section = "" if selected_section_label == "All Sections" else selected_section_label
 
     university_rows = pd.DataFrame(
@@ -1742,7 +2090,7 @@ def main():
 
     university_metrics = build_university_metrics(semester_df, assessment_df, selected_university, selected_section, semester)
     if university_metrics is None:
-        st.warning("No university data available for the current selection.")
+        st.warning("⚠️ No university data available for the current selection.")
         st.stop()
     course_table, hidden_courses = filter_course_table(university_metrics["courseTable"], semester)
     dates = get_semester_dates_for_institute(selected_university, semester, batch)
@@ -1757,10 +2105,10 @@ def main():
             view_options.insert(2, "University Timeline")
         if st.session_state.get("current_view") not in view_options:
             st.session_state["current_view"] = view_options[0]
-        current_view = st.radio("View", view_options, key="current_view", horizontal=True)
+        current_view = st.radio("📑 View", view_options, key="current_view", horizontal=True)
 
     if analysis_type == "overview" and current_view == "University Overview":
-        render_section_header("University overview", "Filter by delivery mode and click a university row to open its course breakdown.")
+        render_section_header("University Overview", "Filter by delivery mode and click a university row to open its course breakdown.", icon="🏛️")
         delivery_mode_map = {
             "All": None,
             "Full": "Full Delivery",
@@ -1829,20 +2177,19 @@ def main():
                 st.rerun()
 
     elif current_view == "Series Overview":
-        render_section_header("Series snapshot", "Each series groups universities by planned or delivered volume based on the selected sidebar logic.")
+        render_section_header("Series Snapshot", "Each series groups universities by planned or delivered volume based on the selected sidebar logic.", icon="📊")
         series_metrics = [
-            {"label": "Selected Series", "value": selected_series, "help": "Current benchmark band used for comparison."},
-            {"label": "Universities in Series", "value": format_metric_value(len(universities), decimals=0), "help": "Institutions included in the selected series."},
+            {"label": "Selected Series", "value": selected_series, "icon": "🎯", "type": "primary"},
+            {"label": "Universities", "value": format_metric_value(len(universities), decimals=0), "icon": "🏛️", "type": "info"},
         ]
         if analysis_type == "design":
-            series_metrics.append({"label": "Series Allotted Hours", "value": format_metric_value(series_summary["avgAllottedHours"], decimals=1), "help": "Average planned hours for universities in this design series."})
-        series_metrics.extend(
-            [
-                {"label": "Series Delivery %", "value": format_metric_value(series_summary["avgOverallCompletion"], suffix="%"), "help": "Average delivery across universities in this series."},
-                {"label": "Series Score %", "value": format_metric_value(series_summary["avgAssessmentScore"] * 100 if series_summary["avgAssessmentScore"] is not None else None, suffix="%"), "help": "Average assessment score for universities in this series."},
-            ]
-        )
-        render_metric_row(series_metrics)
+            series_metrics.append({"label": "Allotted Hours", "value": format_metric_value(series_summary["avgAllottedHours"], decimals=1), "icon": "⏱️", "type": "warning"})
+        series_metrics.extend([
+            {"label": "Delivery %", "value": format_metric_value(series_summary["avgOverallCompletion"], suffix="%"), "icon": "✅", "type": "success"},
+            {"label": "Score %", "value": format_metric_value(series_summary["avgAssessmentScore"] * 100 if series_summary["avgAssessmentScore"] is not None else None, suffix="%"), "icon": "🎯", "type": "primary"},
+        ])
+        render_metric_cards(series_metrics)
+
         st.dataframe(
             series_df,
             use_container_width=True,
@@ -1859,7 +2206,7 @@ def main():
         )
 
     elif current_view == "University Comparison":
-        render_section_header("University benchmark", "Practice %, Exam %, and Lecture % are completion percentages. Avg Delivery % is the overall university delivery view.")
+        render_section_header("University Benchmark", "Compare universities across key performance metrics.", icon="📈")
         st.dataframe(
             university_rows,
             use_container_width=True,
@@ -1879,13 +2226,13 @@ def main():
         )
 
     elif current_view == "University Timeline":
-        render_section_header("University timeline", "Timeline overview for delivered mode using the configured semester dates and NIAT slot plan by university.")
+        render_section_header("University Timeline", "Timeline overview for delivered mode using the configured semester dates.", icon="📅")
         delivery_mode_options = ["All delivery modes"] + sorted([value for value in timeline_df["Delivery Mode"].dropna().unique().tolist() if value and value != "--"])
         if st.session_state.get("timeline_delivery_mode") not in delivery_mode_options:
             st.session_state["timeline_delivery_mode"] = "All delivery modes"
         timeline_filter_col_1, timeline_filter_col_2 = st.columns([1, 1.2])
         with timeline_filter_col_1:
-            selected_delivery_mode = st.selectbox("Delivery mode filter", delivery_mode_options, key="timeline_delivery_mode")
+            selected_delivery_mode = st.selectbox("Filter by Delivery Mode", delivery_mode_options, key="timeline_delivery_mode")
         filtered_timeline_df = timeline_df.copy()
         if selected_delivery_mode != "All delivery modes":
             filtered_timeline_df = filtered_timeline_df[filtered_timeline_df["Delivery Mode"] == selected_delivery_mode].reset_index(drop=True)
@@ -1894,9 +2241,9 @@ def main():
             if st.session_state.get("timeline_selected_university") not in timeline_university_options:
                 st.session_state["timeline_selected_university"] = timeline_university_options[0]
             with timeline_filter_col_2:
-                timeline_selected_university = st.selectbox("Timeline university", timeline_university_options, key="timeline_selected_university")
+                timeline_selected_university = st.selectbox("Select University", timeline_university_options, key="timeline_selected_university")
             st.button(
-                "Open selected university in Course Breakdown",
+                "🔍 Open Course Breakdown",
                 use_container_width=True,
                 on_click=open_course_breakdown_from_timeline,
             )
@@ -1923,9 +2270,9 @@ def main():
 
     elif current_view == "Course Breakdown":
         if analysis_type == "overview":
-            nav_col_1, nav_col_2, nav_col_3 = st.columns([0.18, 1.1, 1.1])
+            nav_col_1, nav_col_2, nav_col_3 = st.columns([0.12, 1, 1])
             with nav_col_1:
-                if st.button("←", key="overview_back_arrow", use_container_width=True):
+                if st.button("← Back", key="overview_back_arrow", use_container_width=True):
                     queue_overview_navigation()
                     st.rerun()
             sections = sorted(semester_df[semester_df["institute"] == selected_university]["section"].dropna().unique().tolist())
@@ -1939,52 +2286,60 @@ def main():
             selected_section = "" if selected_section_label == "All Sections" else selected_section_label
             university_metrics = build_university_metrics(semester_df, assessment_df, selected_university, selected_section, semester)
             if university_metrics is None:
-                st.warning("No university data available for the current selection.")
+                st.warning("⚠️ No university data available for the current selection.")
                 st.stop()
             course_table, hidden_courses = filter_course_table(university_metrics["courseTable"], semester)
-        scope_label = selected_section if selected_section else "All sections"
-        render_section_header(f"{selected_university} - {scope_label}", "Detailed course view for the selected university and section scope.")
+        scope_label = selected_section if selected_section else "All Sections"
+        render_section_header(f"{selected_university} - {scope_label}", "Detailed course view with completion and assessment metrics.", icon="📚")
         if dates:
             st.markdown(
-                f"<div class='info-card'><strong>Semester window:</strong> {dates['start']} to {dates['end']}</div>",
+                f"""
+                <div class="info-card">
+                    <div class="info-card-icon">📅</div>
+                    <div><strong>Semester Window:</strong> {dates['start']} to {dates['end']}</div>
+                </div>
+                """,
                 unsafe_allow_html=True,
             )
         if hidden_courses:
             st.markdown(
-                f"<div class='info-card'><strong>Course cleanup applied:</strong> showing {len(course_table)} focus courses and hiding {hidden_courses} support courses to keep the breakdown readable.</div>",
+                f"""
+                <div class="info-card">
+                    <div class="info-card-icon">ℹ️</div>
+                    <div><strong>Course Cleanup Applied:</strong> Showing {len(course_table)} focus courses ({hidden_courses} support courses hidden)</div>
+                </div>
+                """,
                 unsafe_allow_html=True,
             )
         selected_university_meta = next((item for item in universities if item["name"] == selected_university), None)
+
+        # Detail metrics
         detail_metrics = [
-            {"label": "Courses Shown", "value": format_metric_value(len(course_table), decimals=0), "help": "Visible courses after removing non-core subjects from the breakdown."},
-            {"label": "Students", "value": format_metric_value(university_metrics["classSize"], decimals=0), "help": "Section roster size for the selected scope."},
-            {"label": "Allotted Hours", "value": format_metric_value(selected_university_meta["allottedHours"] if selected_university_meta else None, decimals=1), "help": "Planned hours configured for the selected university."},
+            {"label": "Courses", "value": format_metric_value(len(course_table), decimals=0), "icon": "📚", "type": "info", "help": "Visible focus courses"},
+            {"label": "Students", "value": format_metric_value(university_metrics["classSize"], decimals=0), "icon": "👥", "type": "primary", "help": "Section roster size"},
+            {"label": "Allotted Hours", "value": format_metric_value(selected_university_meta["allottedHours"] if selected_university_meta else None, decimals=1), "icon": "⏱️", "type": "warning", "help": "Planned hours"},
         ]
-        detail_metrics.extend(
-            [
-                {"label": "Total Slots", "value": format_metric_value(university_metrics["totalSessions"], decimals=1), "help": "Combined lecture, practice, and exam slots."},
-                {"label": "Avg Delivery %", "value": format_metric_value(university_metrics["overallCompletion"], suffix="%"), "help": "Overall completion across all session types in this scope."},
-            ]
-        )
-        render_metric_row(detail_metrics)
-        render_metric_row(
-            [
-                {"label": "Lecture %", "value": format_metric_value(university_metrics["lectureCompletion"], suffix="%"), "help": "Lecture completion percentage."},
-                {"label": "Practice %", "value": format_metric_value(university_metrics["practiceCompletion"], suffix="%"), "help": "Practice completion percentage, not student completion."},
-                {"label": "Exam %", "value": format_metric_value(university_metrics["examCompletion"], suffix="%"), "help": "Exam completion percentage."},
-                {"label": "Score %", "value": format_metric_value(university_metrics["assessmentScore"], suffix="%"), "help": "Average assessment score percentage."},
-                {"label": "Participation #", "value": format_metric_value(university_metrics["assessmentParticipation"], decimals=1), "help": "Average count of students who attempted the mapped assessments."},
-            ]
-        )
-        with st.expander("Metric definitions"):
-            st.markdown(
-                """
-                - `Avg Delivery %`: average completion view used for university-level comparison.
-                - `Practice %`, `Lecture %`, `Exam %`: completion percentages for those session types.
-                - `Score %`: average assessment score percentage.
-                - `Participation #`: average number of learners who attempted the mapped assessments.
-                """
-            )
+        detail_metrics.extend([
+            {"label": "Total Slots", "value": format_metric_value(university_metrics["totalSessions"], decimals=1), "icon": "📊", "type": "info", "help": "Combined slots"},
+            {"label": "Delivery %", "value": format_metric_value(university_metrics["overallCompletion"], suffix="%"), "icon": "✅", "type": "success", "help": "Overall completion"},
+        ])
+        render_metric_cards(detail_metrics)
+
+        render_metric_cards([
+            {"label": "Lecture %", "value": format_metric_value(university_metrics["lectureCompletion"], suffix="%"), "icon": "🎓", "type": "primary"},
+            {"label": "Practice %", "value": format_metric_value(university_metrics["practiceCompletion"], suffix="%"), "icon": "💻", "type": "info"},
+            {"label": "Exam %", "value": format_metric_value(university_metrics["examCompletion"], suffix="%"), "icon": "📝", "type": "warning"},
+            {"label": "Score %", "value": format_metric_value(university_metrics["assessmentScore"], suffix="%"), "icon": "🎯", "type": "success"},
+            {"label": "Participation", "value": format_metric_value(university_metrics["assessmentParticipation"], decimals=1), "icon": "👥", "type": "primary"},
+        ])
+
+        with st.expander("ℹ️ Metric Definitions"):
+            st.markdown("""
+            - **Avg Delivery %**: Average completion across lecture, practice, and exam sessions
+            - **Lecture/Practice/Exam %**: Individual session type completion percentages
+            - **Score %**: Average assessment score across all evaluations
+            - **Participation #**: Average number of students attempting assessments
+            """)
         st.dataframe(
             course_table,
             use_container_width=True,
