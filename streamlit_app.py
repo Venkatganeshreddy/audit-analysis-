@@ -437,6 +437,8 @@ COURSE_ALIAS_GROUPS_BY_SEMESTER = {
             "js programming",
             "introduction to react js",
             "react js",
+            "js essentials",
+            "introduction to react js",
         ],
         "Database Management Systems": [
             "database management systems",
@@ -446,6 +448,8 @@ COURSE_ALIAS_GROUPS_BY_SEMESTER = {
             "introduction to database management systems",
             "introduction to database management systems lab",
             "introduction to dbms",
+            "dbms fundamentals",
+            "mongodb",
         ],
         "Data Structures": [
             "data structures",
@@ -479,6 +483,7 @@ COURSE_ALIAS_GROUPS_BY_SEMESTER = {
             "communicative english advanced",
             "technical communication for engineers",
             "aec 2",
+            "english b1 level learner program",
         ],
         "Building LLM Applications": [
             "large language models",
@@ -486,6 +491,8 @@ COURSE_ALIAS_GROUPS_BY_SEMESTER = {
             "generative ai",
             "building llm applications",
             "foundations of generative ai",
+            "building rest api s with flask",
+            "building rest apis with flask",
         ],
         "Physics": [
             "engineering physics",
