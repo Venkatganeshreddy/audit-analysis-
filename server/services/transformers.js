@@ -27,6 +27,7 @@ export function transformAssessmentRow(row) {
     university:        String(row.institute_name || row.university || row.institute || ''),
     section:           String(row.section_name || row.section || ''),
     course_code:       String(row.section_tech_stack || row.section_tech || row.tech_stack || row.course_code || ''),
+    assessment_type:   String(row.assessment_type || row.assessmentType || 'Assessment'),
     avg_participation: parseFloat(row.avg_user || row.avg_participation || row.participation || row.users || 0),
     avg_score:         parseFloat(row.avg_score || row.score || 0),
     batch:             String(row.batch || ''),

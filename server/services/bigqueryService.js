@@ -454,6 +454,7 @@ export async function fetchAssessmentData(filters = {}) {
         u.institute_name AS university,
         COALESCE(NULLIF(TRIM(u.section_name), ''), 'Unknown') AS section,
         COALESCE(content.course_title, ${getCourseExpression()}) AS course_code,
+        'Assessment' AS assessment_type,
         a.user_id AS user_id,
         COALESCE(a.user_score, a.actual_score) AS user_score,
         a.actual_score AS actual_score,
@@ -476,6 +477,10 @@ export async function fetchAssessmentData(filters = {}) {
           NULLIF(TRIM(t.assessment_title), ''),
           CONCAT('Assessment ', CAST(t.assessment_id AS STRING))
         ) AS course_code,
+        CASE
+          WHEN REGEXP_CONTAINS(LOWER(COALESCE(t.assessment_title, '')), r'graded assessment') THEN 'Graded Assessment'
+          ELSE 'Skill Assessment'
+        END AS assessment_type,
         t.user_id AS user_id,
         t.user_section_score AS user_score,
         t.section_actual_score AS actual_score,
@@ -502,14 +507,15 @@ export async function fetchAssessmentData(filters = {}) {
       university,
       section,
       course_code,
+      assessment_type,
       COUNT(DISTINCT IF(COALESCE(user_score, actual_score) IS NOT NULL, user_id, NULL)) AS avg_participation,
       ROUND(AVG(COALESCE(SAFE_DIVIDE(user_score, NULLIF(actual_score, 0)), 0)), 4) AS avg_score,
       @selectedBatch AS batch,
       @selectedSemester AS semester,
       CAST(MAX(report_date) AS STRING) AS report_date
     FROM all_attempts
-    GROUP BY university, section, course_code
-    ORDER BY university, section, course_code
+    GROUP BY university, section, course_code, assessment_type
+    ORDER BY university, section, course_code, assessment_type
   `;
 
   const [rows] = await bigquery.query({
