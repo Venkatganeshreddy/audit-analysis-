@@ -13,6 +13,7 @@ DEFAULT_PROJECT_ID = "kossip-helpers"
 DEFAULT_DATASET = "content_bases_metabase"
 DEFAULT_SEMESTER_TABLE = "all_users_question_attempt_details_for_question_set_units"
 DEFAULT_ASSESSMENT_TABLE = "all_users_question_attempt_details_for_question_set_units"
+DEFAULT_ASSESSMENT_TOPIC_TABLE = "niat_learning_performance_semester_wise_topin_assessment_scores_for_curriculum_team"
 DEFAULT_USERS_TABLE = "niat_and_intensive_offline_users_details"
 DEFAULT_CONTENT_TABLE = "content_all_products_unit_wise_content_hierarchy_details"
 DEFAULT_SCHEDULE_TABLE = "niat_and_intensive_offline_section_wise_daily_learning_schedule_details"
@@ -943,6 +944,10 @@ def get_table_refs():
     return {
         "semester": format_table_ref(get_config("BQ_SEMESTER_TABLE", DEFAULT_SEMESTER_TABLE), DEFAULT_SEMESTER_TABLE),
         "assessment": format_table_ref(get_config("BQ_ASSESSMENT_TABLE", DEFAULT_ASSESSMENT_TABLE), DEFAULT_ASSESSMENT_TABLE),
+        "assessment_topic": format_table_ref(
+            get_config("BQ_ASSESSMENT_TOPIC_TABLE", DEFAULT_ASSESSMENT_TOPIC_TABLE),
+            DEFAULT_ASSESSMENT_TOPIC_TABLE,
+        ),
         "users": format_table_ref(get_config("BQ_USERS_TABLE", DEFAULT_USERS_TABLE), DEFAULT_USERS_TABLE),
         "content": format_table_ref(get_config("BQ_CONTENT_TABLE", DEFAULT_CONTENT_TABLE), DEFAULT_CONTENT_TABLE),
         "schedule": format_table_ref(get_config("BQ_SCHEDULE_TABLE", DEFAULT_SCHEDULE_TABLE), DEFAULT_SCHEDULE_TABLE),
@@ -1072,16 +1077,28 @@ def fetch_semester_data(batch: str, semester: str) -> pd.DataFrame:
 
 def fetch_assessment_data(batch: str, semester: str) -> pd.DataFrame:
     refs = get_table_refs()
-    date_expr = "DATE(COALESCE(a.submission_datetime, a.question_start_datetime))"
-    where_clauses = [
+    legacy_date_expr = "DATE(COALESCE(a.submission_datetime, a.question_start_datetime))"
+    topic_date_expr = "DATE(t.assessment_start_datetime)"
+
+    legacy_where_clauses = [
         "u.user_id IS NOT NULL",
         "TRIM(COALESCE(u.institute_name, '')) != ''",
     ]
-    window_clause = get_semester_window_clause(semester, batch, "u.institute_name", date_expr)
-    if window_clause:
-        where_clauses.append(window_clause)
+    legacy_window_clause = get_semester_window_clause(semester, batch, "u.institute_name", legacy_date_expr)
+    if legacy_window_clause:
+        legacy_where_clauses.append(legacy_window_clause)
     if should_apply_batch_filter(batch):
-        where_clauses.append(f"LOWER(COALESCE(u.batch_name, '')) LIKE '%{sql_escape(batch.strip().lower())}%'")
+        legacy_where_clauses.append(f"LOWER(COALESCE(u.batch_name, '')) LIKE '%{sql_escape(batch.strip().lower())}%'")
+
+    topic_institute_expr = "COALESCE(NULLIF(TRIM(t.institute_name), ''), u.institute_name)"
+    topic_where_clauses = [
+        f"TRIM(COALESCE({topic_institute_expr}, '')) != ''",
+    ]
+    topic_window_clause = get_semester_window_clause(semester, batch, topic_institute_expr, topic_date_expr)
+    if topic_window_clause:
+        topic_where_clauses.append(topic_window_clause)
+    if should_apply_batch_filter(batch):
+        topic_where_clauses.append(f"LOWER(COALESCE(u.batch_name, '')) LIKE '%{sql_escape(batch.strip().lower())}%'")
 
     sql = f"""
         WITH users AS (
@@ -1094,27 +1111,72 @@ def fetch_assessment_data(batch: str, semester: str) -> pd.DataFrame:
         ),
         content AS (
           {build_content_subquery(refs["content"])}
+        ),
+        legacy_attempts AS (
+          SELECT
+            u.institute_name AS university,
+            COALESCE(NULLIF(TRIM(u.section_name), ''), 'Unknown') AS section,
+            COALESCE(
+              content.course_title,
+              COALESCE(
+                NULLIF(TRIM(a.question_set_title), ''),
+                CONCAT('Question Set ', CAST(a.question_set_id AS STRING))
+              )
+            ) AS course_code,
+            a.user_id AS user_id,
+            COALESCE(a.user_score, a.actual_score) AS user_score,
+            a.actual_score AS actual_score,
+            {legacy_date_expr} AS report_date
+          FROM {refs["assessment"]} a
+          JOIN users u USING (user_id)
+          LEFT JOIN content ON CAST(a.question_set_id AS STRING) = content.unit_id
+          WHERE {' AND '.join(legacy_where_clauses)}
+            AND COALESCE(a.actual_score, 0) > 0
+            AND NOT REGEXP_CONTAINS(LOWER(COALESCE(a.question_set_title, '')), r'skill assessment|graded assessment')
+        ),
+        topic_attempts AS (
+          SELECT
+            {topic_institute_expr} AS university,
+            COALESCE(NULLIF(TRIM(t.section_name), ''), NULLIF(TRIM(u.section_name), ''), 'Unknown') AS section,
+            COALESCE(
+              content.course_title,
+              NULLIF(TRIM(REGEXP_EXTRACT(t.assessment_title, r'\\|\\|\\s*(.+)$')), ''),
+              NULLIF(TRIM(t.section_tech_stack), ''),
+              NULLIF(TRIM(t.assessment_title), ''),
+              CONCAT('Assessment ', CAST(t.assessment_id AS STRING))
+            ) AS course_code,
+            t.user_id AS user_id,
+            t.user_section_score AS user_score,
+            t.section_actual_score AS actual_score,
+            {topic_date_expr} AS report_date
+          FROM {refs["assessment_topic"]} t
+          LEFT JOIN users u USING (user_id)
+          LEFT JOIN content ON CAST(t.unit_id AS STRING) = content.unit_id
+          WHERE {' AND '.join(topic_where_clauses)}
+            AND COALESCE(t.section_actual_score, 0) > 0
+            AND (
+              REGEXP_CONTAINS(LOWER(COALESCE(t.assessment_title, '')), r'graded assessment')
+              OR (
+                REGEXP_CONTAINS(LOWER(COALESCE(t.assessment_title, '')), r'skill assessment')
+                AND NOT REGEXP_CONTAINS(LOWER(COALESCE(t.assessment_title, '')), r'mock skill assessment')
+              )
+            )
+        ),
+        all_attempts AS (
+          SELECT * FROM legacy_attempts
+          UNION ALL
+          SELECT * FROM topic_attempts
         )
         SELECT
-          u.institute_name AS university,
-          COALESCE(NULLIF(TRIM(u.section_name), ''), 'Unknown') AS section,
-          COALESCE(
-            content.course_title,
-            COALESCE(
-              NULLIF(TRIM(a.question_set_title), ''),
-              CONCAT('Question Set ', CAST(a.question_set_id AS STRING))
-            )
-          ) AS course_code,
-          COUNT(DISTINCT IF(COALESCE(a.user_score, a.actual_score) IS NOT NULL, a.user_id, NULL)) AS avg_participation,
-          ROUND(AVG(COALESCE(SAFE_DIVIDE(a.user_score, NULLIF(a.actual_score, 0)), 0)), 4) AS avg_score,
+          university,
+          section,
+          course_code,
+          COUNT(DISTINCT IF(COALESCE(user_score, actual_score) IS NOT NULL, user_id, NULL)) AS avg_participation,
+          ROUND(AVG(COALESCE(SAFE_DIVIDE(user_score, NULLIF(actual_score, 0)), 0)), 4) AS avg_score,
           '{sql_escape(batch)}' AS batch,
           '{sql_escape(semester)}' AS semester,
-          CAST(MAX({date_expr}) AS STRING) AS report_date
-        FROM {refs["assessment"]} a
-        JOIN users u USING (user_id)
-        LEFT JOIN content ON CAST(a.question_set_id AS STRING) = content.unit_id
-        WHERE {' AND '.join(where_clauses)}
-          AND COALESCE(a.actual_score, 0) > 0
+          CAST(MAX(report_date) AS STRING) AS report_date
+        FROM all_attempts
         GROUP BY university, section, course_code
         ORDER BY university, section, course_code
     """

@@ -9,6 +9,7 @@ const DEFAULT_PROJECT_ID = 'kossip-helpers';
 const DEFAULT_DATASET = 'content_bases_metabase';
 const DEFAULT_SEMESTER_TABLE = 'all_users_question_attempt_details_for_question_set_units';
 const DEFAULT_ASSESSMENT_TABLE = 'all_users_question_attempt_details_for_question_set_units';
+const DEFAULT_ASSESSMENT_TOPIC_TABLE = 'niat_learning_performance_semester_wise_topin_assessment_scores_for_curriculum_team';
 const DEFAULT_USERS_TABLE = 'niat_and_intensive_offline_users_details';
 const DEFAULT_CONTENT_TABLE = 'content_all_products_unit_wise_content_hierarchy_details';
 const DEFAULT_SCHEDULE_TABLE = 'niat_and_intensive_offline_section_wise_daily_learning_schedule_details';
@@ -191,6 +192,10 @@ const assessmentTableRef = parseTableReference(
   getEnv('BQ_ASSESSMENT_TABLE', 'BQASSESSMENTTABLE', 'BQ_TABLE', 'BQTABLE'),
   DEFAULT_ASSESSMENT_TABLE,
 );
+const assessmentTopicTableRef = parseTableReference(
+  getEnv('BQ_ASSESSMENT_TOPIC_TABLE', 'BQASSESSMENTTOPICTABLE'),
+  DEFAULT_ASSESSMENT_TOPIC_TABLE,
+);
 const usersTableRef = parseTableReference(
   getEnv('BQ_USERS_TABLE', 'BQUSERSTABLE'),
   DEFAULT_USERS_TABLE,
@@ -209,6 +214,7 @@ const dataset = getEnv('BQ_DATASET', 'BQDATASET') || semesterTableRef.dataset;
 
 const semesterTable = formatTableReference(semesterTableRef);
 const assessmentTable = formatTableReference(assessmentTableRef);
+const assessmentTopicTable = formatTableReference(assessmentTopicTableRef);
 const usersTable = formatTableReference(usersTableRef);
 const contentTable = formatTableReference(contentTableRef);
 const scheduleTable = formatTableReference(scheduleTableRef);
@@ -397,9 +403,44 @@ export async function fetchSemesterData(filters = {}) {
 }
 
 export async function fetchAssessmentData(filters = {}) {
-  const { whereClause, params, dateExpr } = buildFilters(filters);
-  const courseExpression = getCourseExpression();
-  const sectionExpression = getSectionExpression();
+  const legacyDateExpr = `DATE(COALESCE(a.submission_datetime, a.question_start_datetime))`;
+  const topicDateExpr = 'DATE(t.assessment_start_datetime)';
+  const topicInstituteExpr = `COALESCE(NULLIF(TRIM(t.institute_name), ''), u.institute_name)`;
+  const params = {
+    selectedBatch: filters.batch || '',
+    selectedSemester: filters.semester || '',
+  };
+
+  const legacyConditions = [
+    `u.user_id IS NOT NULL`,
+    `TRIM(COALESCE(u.institute_name, '')) != ''`,
+  ];
+  const legacySemesterClause = buildSemesterWindowClause(filters.semester, filters.batch, 'u.institute_name', legacyDateExpr, params);
+  if (legacySemesterClause) legacyConditions.push(legacySemesterClause);
+
+  const topicConditions = [
+    `TRIM(COALESCE(${topicInstituteExpr}, '')) != ''`,
+  ];
+  const topicSemesterClause = buildSemesterWindowClause(filters.semester, filters.batch, topicInstituteExpr, topicDateExpr, params);
+  if (topicSemesterClause) topicConditions.push(topicSemesterClause);
+
+  if (filters.startDate) {
+    legacyConditions.push(`${legacyDateExpr} >= @startDate`);
+    topicConditions.push(`${topicDateExpr} >= @startDate`);
+    params.startDate = filters.startDate;
+  }
+
+  if (filters.endDate) {
+    legacyConditions.push(`${legacyDateExpr} <= @endDate`);
+    topicConditions.push(`${topicDateExpr} <= @endDate`);
+    params.endDate = filters.endDate;
+  }
+
+  if (shouldApplyBatchFilter(filters.batch)) {
+    legacyConditions.push(`LOWER(COALESCE(u.batch_name, '')) LIKE @batchPattern`);
+    topicConditions.push(`LOWER(COALESCE(u.batch_name, '')) LIKE @batchPattern`);
+    params.batchPattern = `%${filters.batch.trim().toLowerCase()}%`;
+  }
 
   const sql = `
     WITH users AS (
@@ -407,32 +448,73 @@ export async function fetchAssessmentData(filters = {}) {
     ),
     content AS (
       ${buildContentSubquery()}
+    ),
+    legacy_attempts AS (
+      SELECT
+        u.institute_name AS university,
+        COALESCE(NULLIF(TRIM(u.section_name), ''), 'Unknown') AS section,
+        COALESCE(content.course_title, ${getCourseExpression()}) AS course_code,
+        a.user_id AS user_id,
+        COALESCE(a.user_score, a.actual_score) AS user_score,
+        a.actual_score AS actual_score,
+        ${legacyDateExpr} AS report_date
+      FROM ${assessmentTable} a
+      JOIN users u USING (user_id)
+      LEFT JOIN content ON CAST(a.question_set_id AS STRING) = content.unit_id
+      WHERE ${legacyConditions.join(' AND ')}
+        AND COALESCE(a.actual_score, 0) > 0
+        AND NOT REGEXP_CONTAINS(LOWER(COALESCE(a.question_set_title, '')), r'skill assessment|graded assessment')
+    ),
+    topic_attempts AS (
+      SELECT
+        ${topicInstituteExpr} AS university,
+        COALESCE(NULLIF(TRIM(t.section_name), ''), NULLIF(TRIM(u.section_name), ''), 'Unknown') AS section,
+        COALESCE(
+          content.course_title,
+          NULLIF(TRIM(REGEXP_EXTRACT(t.assessment_title, r'\|\|\s*(.+)$')), ''),
+          NULLIF(TRIM(t.section_tech_stack), ''),
+          NULLIF(TRIM(t.assessment_title), ''),
+          CONCAT('Assessment ', CAST(t.assessment_id AS STRING))
+        ) AS course_code,
+        t.user_id AS user_id,
+        t.user_section_score AS user_score,
+        t.section_actual_score AS actual_score,
+        ${topicDateExpr} AS report_date
+      FROM ${assessmentTopicTable} t
+      LEFT JOIN users u USING (user_id)
+      LEFT JOIN content ON CAST(t.unit_id AS STRING) = content.unit_id
+      WHERE ${topicConditions.join(' AND ')}
+        AND COALESCE(t.section_actual_score, 0) > 0
+        AND (
+          REGEXP_CONTAINS(LOWER(COALESCE(t.assessment_title, '')), r'graded assessment')
+          OR (
+            REGEXP_CONTAINS(LOWER(COALESCE(t.assessment_title, '')), r'skill assessment')
+            AND NOT REGEXP_CONTAINS(LOWER(COALESCE(t.assessment_title, '')), r'mock skill assessment')
+          )
+        )
+    ),
+    all_attempts AS (
+      SELECT * FROM legacy_attempts
+      UNION ALL
+      SELECT * FROM topic_attempts
     )
     SELECT
-      u.institute_name AS university,
-      ${sectionExpression} AS section,
-      COALESCE(content.course_title, ${courseExpression}) AS course_code,
-      COUNT(DISTINCT IF(COALESCE(a.user_score, a.actual_score) IS NOT NULL, a.user_id, NULL)) AS avg_participation,
-      ROUND(AVG(COALESCE(SAFE_DIVIDE(a.user_score, NULLIF(a.actual_score, 0)), 0)), 4) AS avg_score,
+      university,
+      section,
+      course_code,
+      COUNT(DISTINCT IF(COALESCE(user_score, actual_score) IS NOT NULL, user_id, NULL)) AS avg_participation,
+      ROUND(AVG(COALESCE(SAFE_DIVIDE(user_score, NULLIF(actual_score, 0)), 0)), 4) AS avg_score,
       @selectedBatch AS batch,
       @selectedSemester AS semester,
-      CAST(MAX(${dateExpr}) AS STRING) AS report_date
-    FROM ${assessmentTable} a
-    JOIN users u USING (user_id)
-    LEFT JOIN content ON CAST(a.question_set_id AS STRING) = content.unit_id
-    WHERE ${whereClause}
-      AND COALESCE(a.actual_score, 0) > 0
+      CAST(MAX(report_date) AS STRING) AS report_date
+    FROM all_attempts
     GROUP BY university, section, course_code
     ORDER BY university, section, course_code
   `;
 
   const [rows] = await bigquery.query({
     query: sql,
-    params: {
-      ...params,
-      selectedBatch: filters.batch || '',
-      selectedSemester: filters.semester || '',
-    },
+    params,
   });
 
   return rows.map(transformAssessmentRow);
