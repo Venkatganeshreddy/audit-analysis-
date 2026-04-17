@@ -1605,47 +1605,31 @@ def inject_custom_css():
                 margin-bottom: 12px;
                 font-size: 0.94rem;
             }
-            .metric-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-                gap: 14px;
-                margin-bottom: 14px;
-            }
             .metric-card {
                 background: rgba(255, 255, 255, 0.92);
                 border: 1px solid rgba(148, 163, 184, 0.22);
-                border-radius: 18px;
-                padding: 16px 16px 14px 16px;
-                box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
-                min-height: 112px;
-                height: 100%;
-                display: flex;
-                flex-direction: column;
-                justify-content: space-between;
-                overflow: hidden;
-            }
-            .metric-card.compact {
-                min-height: 102px;
+                border-radius: 20px;
+                padding: 18px 18px 16px 18px;
+                box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+                min-height: 118px;
             }
             .metric-label {
                 color: #475569;
-                font-size: 0.8rem;
-                font-weight: 700;
+                font-size: 0.86rem;
+                font-weight: 600;
                 margin-bottom: 10px;
-                line-height: 1.35;
             }
             .metric-value {
                 color: #0f172a;
-                font-size: 1.55rem;
+                font-size: 1.8rem;
                 font-weight: 700;
-                line-height: 1.12;
+                line-height: 1.1;
                 margin-bottom: 8px;
-                word-break: break-word;
             }
             .metric-help {
                 color: #64748b;
-                font-size: 0.76rem;
-                line-height: 1.4;
+                font-size: 0.8rem;
+                line-height: 1.5;
             }
             .info-card {
                 background: rgba(255, 255, 255, 0.88);
@@ -1694,20 +1678,19 @@ def render_section_header(title: str, caption: str):
 
 
 def render_metric_row(items):
-    compact = " compact" if len(items) >= 5 else ""
-    cards = []
-    for item in items:
+    columns = st.columns(len(items))
+    for column, item in zip(columns, items):
         help_text = f"<div class='metric-help'>{item.get('help', '')}</div>" if item.get("help") else ""
-        cards.append(
+        column.markdown(
             f"""
-            <div class="metric-card{compact}">
+            <div class="metric-card">
                 <div class="metric-label">{item['label']}</div>
                 <div class="metric-value">{item['value']}</div>
                 {help_text}
             </div>
-            """
+            """,
+            unsafe_allow_html=True,
         )
-    st.markdown(f"<div class='metric-grid'>{''.join(cards)}</div>", unsafe_allow_html=True)
 
 
 def main():
