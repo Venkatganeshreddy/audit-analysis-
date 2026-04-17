@@ -603,8 +603,14 @@ COURSE_ALIAS_GROUPS_BY_SEMESTER = {
 
 
 NON_CORE_COURSES_BY_SEMESTER = {
-    "Semester 1": set(),
-    "Semester 2": {"Assessment"},
+    "Semester 1": {
+        "Assessment",
+        "Module Quiz",
+    },
+    "Semester 2": {
+        "Assessment",
+        "Module Quiz",
+    },
 }
 
 
@@ -711,6 +717,16 @@ def normalize_text(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", " ", str(value or "").lower()).strip()
 
 
+QUIZ_ALIAS_PATTERNS = [
+    "module quiz",
+    "module quizzes",
+    "quiz",
+    "quizzes",
+    "skill assessment",
+    "skill assessments",
+]
+
+
 def normalize_course_name(course_name: str, semester: str) -> str:
     raw = str(course_name or "").strip()
     if not raw:
@@ -719,6 +735,8 @@ def normalize_course_name(course_name: str, semester: str) -> str:
     if raw in course_map:
         return course_map[raw]
     normalized_raw = normalize_text(raw)
+    if any(pattern in normalized_raw for pattern in QUIZ_ALIAS_PATTERNS):
+        return "Module Quiz"
     alias_groups = COURSE_ALIAS_GROUPS_BY_SEMESTER.get(semester, {})
     for canonical_name, aliases in alias_groups.items():
         if any(normalized_raw == normalize_text(alias) or normalize_text(alias) in normalized_raw for alias in aliases):
