@@ -259,6 +259,7 @@ COURSE_MAPPING_BY_SEMESTER = {
         "COMMUNICATIVE_ENGLISH_FOUNDATION": "Communicative English Foundation",
         "PROGRAMMING_FOUNDATIONS": "Computer Programming",
         "QUANTITATIVE_APTITUDE": "Numerical Ability",
+        "ENGINEERING_GRAPHICS": "Engineering Drawing",
     },
     "Semester 2": {
         "WEB_APPLICATION_DEVELOPMENT_2": "Web Application Development 2",
@@ -274,7 +275,7 @@ COURSE_MAPPING_BY_SEMESTER = {
         "EA": "Advanced Communicative English",
         "COMMUNICATIVE_ENGLISH_FOUNDATION": "Advanced Communicative English",
         "BUSINESS_ENGLISH": "Advanced Communicative English",
-        "BE": "Advanced Communicative English",
+        "BE": "Basic Electronics",
         "LLM": "Building LLM Applications",
         "LARGE_LANGUAGE_MODELS": "Building LLM Applications",
         "GENERATIVE_AI": "Building LLM Applications",
@@ -283,13 +284,13 @@ COURSE_MAPPING_BY_SEMESTER = {
         "CHEMISTRY": "Chemistry",
         "CHE": "Chemistry",
         "YOGA": "Yoga and Wellness",
-        "TDP": "Talent Development Program",
+        "TDP": "Internship / Projects",
         "HVS": "Humanities and Constitution",
         "HUMAN_VALUES": "Humanities and Constitution",
         "ASSESSMENT": "Assessment",
-        "AS": "Assessment",
-        "IKS": "Humanities and Constitution",
-        "INDIAN_KNOWLEDGE_SYSTEM": "Humanities and Constitution",
+        "AS": "Basic Electrical Engineering",
+        "IKS": "Indian Knowledge Systems",
+        "INDIAN_KNOWLEDGE_SYSTEM": "Indian Knowledge Systems",
         "LINEAR_ALGEBRA": "Mathematics",
         "LA_C": "Mathematics",
         "ENVIRONMENTAL_SCIENCE": "Environmental Studies",
@@ -300,8 +301,9 @@ COURSE_MAPPING_BY_SEMESTER = {
         "LA_E": "Foreign Language",
         "ENGINEERING_DRAWING": "Engineering Drawing",
         "ED": "Engineering Drawing",
+        "CO_CURRICULAR_ACTIVITIES": "Co-curricular Activities",
+        "CC": "Co-curricular Activities",
         "CLOUD_COMPUTING": "Cloud Computing",
-        "CC": "Cloud Computing",
         "PROGRAMMING_FOUNDATIONS": "Data Structures",
         "BUILD_YOUR_OWN_STATIC_WEBSITE": "Web Application Development 2",
         "MATHEMATICS": "Mathematics",
@@ -338,6 +340,8 @@ COURSE_ALIAS_GROUPS_BY_SEMESTER = {
             "frontend development fundamentals",
             "fundamentals of web development",
             "web technologies",
+            "web technologies laboratory",
+            "web application development 1 laboratory",
         ],
         "Communicative English Foundation": [
             "communicative english foundation",
@@ -345,6 +349,7 @@ COURSE_ALIAS_GROUPS_BY_SEMESTER = {
             "english foundation",
             "aec 1",
             "cambridge english b1",
+            "writing practice",
         ],
         "Computer Programming": [
             "programming foundations",
@@ -367,26 +372,56 @@ COURSE_ALIAS_GROUPS_BY_SEMESTER = {
             "developer foundations",
             "introduction to computing systems",
         ],
-        "Numerical Ability": ["quantitative aptitude", "numerical aptitude"],
-        "Applied Science": [
+        "Numerical Ability": [
+            "quantitative aptitude",
+            "numerical aptitude",
+        ],
+        "Physics": [
             "applied physics for data science",
-            "basic electrical electronics engineering",
-            "basic electronics",
+            "applied physics for data science lab",
             "fundamentals of quantum computing",
         ],
-        "Foreign Language": ["foreign language 1", "foreign language - 1", "foreign language"],
-        "Yoga": ["essence of yoga", "physical wellness and yoga"],
-        "Indian Knowledge System": ["indian knowledge system"],
+        "Basic Electrical Engineering": [
+            "basic electrical electronics engineering",
+        ],
+        "Basic Electronics": [
+            "basic electronics",
+        ],
+        "Foreign Language": [
+            "foreign language 1",
+            "foreign language - 1",
+            "foreign language",
+        ],
+        "Yoga and Wellness": [
+            "essence of yoga",
+            "physical wellness and yoga",
+        ],
+        "Indian Knowledge Systems": [
+            "indian knowledge system",
+        ],
+        "Internship / Projects": [
+            "trans disciplinary project",
+        ],
         "Co-curricular Activities": [
             "co curricular activities i",
             "co curricular activities - i",
             "induction training",
-            "trans disciplinary project",
         ],
-        "Environmental Science": ["mnc i evs"],
-        "Human Values & Ethics": ["uhv2"],
-        "Elective": ["elective i"],
-        "Support Slot": ["sec 1", "vac 1", "writing practice", "professional skills for engineers"],
+        "Environmental Studies": [
+            "mnc i evs",
+        ],
+        "Humanities and Constitution": [
+            "uhv2",
+        ],
+        "University Electives": [
+            "elective i",
+            "sec 1",
+            "vac 1",
+            "professional skills for engineers",
+        ],
+        "Engineering Drawing": [
+            "engineering graphics",
+        ],
     },
     "Semester 2": {
         "Web Application Development 2": [
@@ -395,13 +430,13 @@ COURSE_ALIAS_GROUPS_BY_SEMESTER = {
             "front end full stack development",
             "front end full stack development laboratory",
             "frontend development 2",
+            "frontend development advanced",
             "build your own dynamic web application",
             "js essentials",
             "javascript essentials",
             "js programming",
             "introduction to react js",
             "react js",
-            "frontend development advanced",
         ],
         "Database Management Systems": [
             "database management systems",
@@ -432,6 +467,19 @@ COURSE_ALIAS_GROUPS_BY_SEMESTER = {
             "phase 1 data structures and algorithms",
             "foundations of data structures and algorithms",
         ],
+        "Numerical Ability": [
+            "numerical aptitude",
+            "quantitative aptitude",
+            "numerical ability",
+        ],
+        "Advanced Communicative English": [
+            "english advanced",
+            "advanced communicative english",
+            "advanced technical english",
+            "communicative english advanced",
+            "technical communication for engineers",
+            "aec 2",
+        ],
         "Building LLM Applications": [
             "large language models",
             "llm",
@@ -439,41 +487,34 @@ COURSE_ALIAS_GROUPS_BY_SEMESTER = {
             "building llm applications",
             "foundations of generative ai",
         ],
-        "Numerical Ability": [
-            "numerical aptitude",
-            "quantitative aptitude",
-            "logical thinking",
-            "numerical ability",
-        ],
-        "Advanced Communicative English": [
-            "english advanced",
-            "communicative english foundation",
-            "business english",
-            "advanced communicative english",
-            "advanced technical english",
-            "communicative english advanced",
-            "technical communication for engineers",
-            "aec 2",
-        ],
-        "Mathematics": [
-            "linear algebra",
-            "linear algebra calculus",
-            "calculus",
-            "engineering mathematics 2",
-            "linear algebra and calculus",
-            "logical mathematics for software engineers ii",
-            "mathematics for problem solving",
-            "probability and statistics",
-        ],
         "Physics": [
             "engineering physics",
             "engineering physics laboratory",
             "modern physics",
             "quantum physics",
+            "fqc",
         ],
         "Chemistry": [
             "engineering chemistry laboratory",
             "material chemistry for cse",
+        ],
+        "Yoga and Wellness": [
+            "application of yoga in mind body management",
+            "yoga",
+        ],
+        "Indian Knowledge Systems": [
+            "indian knowledge systems",
+            "indian knowledge system",
+        ],
+        "Mathematics": [
+            "engineering mathematics 2",
+            "linear algebra and calculus",
+            "mathematics for problem solving",
+            "logical mathematics for software engineers ii",
+            "probability and statistics",
+            "linear algebra",
+            "linear algebra calculus",
+            "calculus",
         ],
         "Environmental Studies": [
             "environmental science",
@@ -481,62 +522,53 @@ COURSE_ALIAS_GROUPS_BY_SEMESTER = {
             "environmental sciences",
             "environmental studies",
         ],
-        "Basic Electrical Engineering": [
-            "applied science",
-            "basic electrical engineering",
-            "applied science basic electrical engineering",
-        ],
-        "Backend Development": [
-            "back end development",
-            "back end development node js mongodb",
-            "node js",
-        ],
-        "Command Line Interfaces and Scripting": [
-            "command line interfaces and scripting",
-        ],
-        "Engineering Drawing": [
-            "computer aided engineering graphics",
-            "engineering drawing",
-            "design drafting",
-        ],
-        "Object Oriented Programming": [
-            "object oriented programming",
-            "introduction to logic",
-        ],
-        "Foreign Language": [
-            "foreign language 2",
-            "foreign language -2",
-            "foreign language",
-            "language elective",
-        ],
         "Humanities and Constitution": [
             "constitution of india",
             "universal human values",
             "human values",
             "human values ethics",
             "hvs",
-            "indian knowledge systems",
-            "indian knowledge system",
         ],
-        "Yoga and Wellness": [
-            "application of yoga in mind body management",
-            "yoga",
+        "Foreign Language": [
+            "foreign language 2",
+            "foreign language -2",
+            "foreign language",
+            "language elective",
+            "la e",
         ],
-        "Biology": [
-            "foundation option 1 general biology",
+        "Engineering Drawing": [
+            "engineering drawing",
+            "computer aided engineering graphics",
+            "caeg",
+            "design drafting",
+        ],
+        "Basic Electrical Engineering": [
+            "applied science",
+            "applied science basic electrical engineering",
+            "basic electrical engineering",
+        ],
+        "Basic Electronics": [
+            "basic electronics",
+        ],
+        "Backend Development": [
+            "back end development",
+            "back end development node js mongodb",
+        ],
+        "Command Line Interfaces and Scripting": [
+            "command line interfaces and scripting",
+        ],
+        "Object Oriented Programming": [
+            "object oriented programming",
+            "introduction to logic",
+        ],
+        "Co-curricular Activities": [
+            "co curricular activities - 2",
+            "co curricular activities 2",
         ],
         "Internship / Projects": [
             "internship",
             "trans disciplinary project",
-            "co curricular activities - 2",
-            "co curricular activities 2",
-        ],
-        "University Electives": [
-            "aec 2",
-            "sec 2",
-            "vac 2",
-            "base 44 workshop",
-            "university slot",
+            "tdp",
         ],
         "Assessment": [
             "assessment",
@@ -547,39 +579,25 @@ COURSE_ALIAS_GROUPS_BY_SEMESTER = {
             "internal exam",
             "internal test",
         ],
-        "Cloud Computing": ["cloud computing"],
+        "Biology": [
+            "foundation option 1 general biology",
+        ],
+        "University Electives": [
+            "sec 2",
+            "vac 2",
+            "base 44 workshop",
+            "university slot",
+        ],
+        "Cloud Computing": [
+            "cloud computing",
+        ],
     },
 }
 
 
 NON_CORE_COURSES_BY_SEMESTER = {
-    "Semester 1": {
-        "Applied Science",
-        "Co-curricular Activities",
-        "Elective",
-        "Environmental Science",
-        "Foreign Language",
-        "Human Values & Ethics",
-        "Indian Knowledge System",
-        "Support Slot",
-        "Yoga",
-    },
-    "Semester 2": {
-        "Assessment",
-        "Basic Electrical Engineering",
-        "Biology",
-        "Chemistry",
-        "Cloud Computing",
-        "Engineering Drawing",
-        "Environmental Studies",
-        "Foreign Language",
-        "Humanities and Constitution",
-        "Internship / Projects",
-        "Physics",
-        "Talent Development Program",
-        "University Electives",
-        "Yoga and Wellness",
-    },
+    "Semester 1": set(),
+    "Semester 2": {"Assessment"},
 }
 
 
