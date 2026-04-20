@@ -6,12 +6,15 @@ export const COURSE_TO_SUBJECT_MAPPING_SEM2 = {
   'Web Application Development 2': 'Web Application Development - 2',
   'Web Application Development - 2': 'Web Application Development - 2',
   'Js essentials': 'Web Application Development - 2',
+  'JS Essentials': 'Web Application Development - 2',
   'JavaScript Essentials': 'Web Application Development - 2',
   'JavaScript Programming': 'Web Application Development - 2',
   'Introduction to React JS': 'Web Application Development - 2',
   'Introduction to React': 'Web Application Development - 2',
   'React JS': 'Web Application Development - 2',
   'React': 'Web Application Development - 2',
+  'react js': 'Web Application Development - 2',
+  'react': 'Web Application Development - 2',
 
   // Linear Algebra & Calculus
   'Linear Algebra & Calculus': 'Linear Algebra and Calculus',
@@ -20,6 +23,9 @@ export const COURSE_TO_SUBJECT_MAPPING_SEM2 = {
   'Calculus': 'Linear Algebra and Calculus',
   'Mathematics': 'Linear Algebra and Calculus',
   'Maths': 'Linear Algebra and Calculus',
+  'mathematics': 'Linear Algebra and Calculus',
+  'maths': 'Linear Algebra and Calculus',
+  'math': 'Linear Algebra and Calculus',
 
   // Database Management Systems
   'Database Management Systems': 'Data Base Management System',
@@ -29,12 +35,18 @@ export const COURSE_TO_SUBJECT_MAPPING_SEM2 = {
   'DBMS Fundamentals': 'Data Base Management System',
   'MongoDB': 'Data Base Management System',
   'SQL': 'Data Base Management System',
+  'sql': 'Data Base Management System',
+  'Dbms fundamentals': 'Data Base Management System',
+  'mongodb': 'Data Base Management System',
+  'Introduction to databases': 'Data Base Management System',
 
   // Numerical Aptitude
   'Numerical Aptitude': 'Numerical Ability',
   'Numerical Ability': 'Numerical Ability',
   'Quantitative Aptitude': 'Numerical Ability',
   'Logical Thinking': 'Numerical Ability',
+  'numerical ability': 'Numerical Ability',
+  'numerical aptitude': 'Numerical Ability',
 
   // English Advanced
   'English Advanced': 'Advanced English',
@@ -48,6 +60,9 @@ export const COURSE_TO_SUBJECT_MAPPING_SEM2 = {
   'English B1 Level Learner Program': 'Advanced English',
   'B1 Level English': 'Advanced English',
   'English B1': 'Advanced English',
+  'english course': 'Advanced English',
+  'advanced english': 'Advanced English',
+  'communicative english': 'Advanced English',
 
   // Data Structures
   'Data Structures': 'Data Structures',
@@ -57,6 +72,8 @@ export const COURSE_TO_SUBJECT_MAPPING_SEM2 = {
   'DSA Level 1': 'Data Structures',
   'NIAT-DSA': 'Data Structures',
   'Academy - DSA': 'Data Structures',
+  'data structures': 'Data Structures',
+  'niat-dsa': 'Data Structures',
 
   // Large Language Models
   'Large Language Models': 'Building LLM Applications',
@@ -64,25 +81,32 @@ export const COURSE_TO_SUBJECT_MAPPING_SEM2 = {
   'Generative AI': 'Building LLM Applications',
   'Building REST API with Flask': 'Building LLM Applications',
   'Building LLM Applications': 'Building LLM Applications',
+  'building llm applications': 'Building LLM Applications',
 
   // Indian Knowledge System
   'Indian Knowledge System': 'Indian Knowledge System',
   'IKS': 'Indian Knowledge System',
+  'Indian Knowledge Systems': 'Indian Knowledge System',
+  'indian knowledge system': 'Indian Knowledge System',
 
   // Engineering Drawing
   'Engineering Drawing': 'Engineering Drawing',
   'Engineering Drawing / Design Drafting': 'Engineering Drawing',
+  'engineering drawing': 'Engineering Drawing',
 
   // Physics
   'Physics': 'Physics',
   'Engineering Physics': 'Physics',
+  'physics': 'Physics',
 
   // Environmental Science
   'Environmental Science': 'Environmental Studies',
   'Environmental Studies': 'Environmental Studies',
+  'environmental science': 'Environmental Studies',
 
   // Yoga
   'Yoga': 'Yoga',
+  'yoga': 'Yoga',
 
   // Talent Development Program
   'Talent Development Program': 'Talent Development Program',
@@ -107,6 +131,29 @@ export const COURSE_TO_SUBJECT_MAPPING_SEM2 = {
 
   // Assessment
   'Assessment': 'Assessment',
+};
+
+// Keyword-based subject detection
+const SUBJECT_KEYWORDS = {
+  'Web Application Development - 2': ['web application', 'js essentials', 'javascript', 'react', 'js programming'],
+  'Data Base Management System': ['database', 'dbms', 'sql', 'mongodb', 'mongo'],
+  'Data Structures': ['data structures', 'dsa', 'data structure'],
+  'Linear Algebra and Calculus': ['linear algebra', 'calculus', 'mathematics', 'maths', 'math'],
+  'Building LLM Applications': ['llm', 'large language', 'generative ai', 'flask', 'building llm'],
+  'Advanced English': ['english', 'communicative', 'b1 level'],
+  'Numerical Ability': ['numerical', 'quantitative', 'logical thinking'],
+  'Physics': ['physics'],
+  'Chemistry': ['chemistry'],
+  'Engineering Drawing': ['engineering drawing', 'design drafting'],
+  'Indian Knowledge System': ['indian knowledge', 'iks'],
+  'Environmental Studies': ['environmental', 'environtmenal'],
+  'Human Values & Ethics': ['human values', 'hvs', 'ethics'],
+  'Indian Constitution': ['constitution'],
+  'Yoga': ['yoga'],
+  'Talent Development Program': ['talent development', 'tdp'],
+  'Language Elective': ['language elective'],
+  'Cloud Computing': ['cloud computing'],
+  'Assessment': ['assessment'],
 };
 
 // Subject display order (for consistent UI)
@@ -164,6 +211,15 @@ export function getSubjectFromCourse(courseName, semester = 'Semester 2') {
   for (const [course, subject] of Object.entries(COURSE_TO_SUBJECT_MAPPING_SEM2)) {
     if (normalizeText(course) === normalizedKey) {
       return subject;
+    }
+  }
+
+  // Keyword-based matching
+  for (const [subject, keywords] of Object.entries(SUBJECT_KEYWORDS)) {
+    for (const keyword of keywords) {
+      if (lowerNormalized.includes(keyword.toLowerCase())) {
+        return subject;
+      }
     }
   }
 
