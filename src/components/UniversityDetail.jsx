@@ -213,6 +213,7 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
     'Language Elective',
     'Engineering Drawing',
     'Business English',
+    'Node JS',
   ]);
 
   const getCourseRows = () => {
