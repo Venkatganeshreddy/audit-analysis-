@@ -44,5 +44,6 @@ export const SEMESTER_DATES_BY_SEMESTER = {
     "NSRIT": { start: "Feb 9, 2026", end: "Jul 13, 2026" },
     "Aurora University": { start: "Aug 12, 2025", end: "Feb 22, 2026" },
     "BITS": { start: "Jan 28, 2026", end: "Aug 15, 2026" },
+    "NIAT Chevella": { start: "Jan 28, 2026", end: "Aug 15, 2026" },
   },
 };

@@ -3,6 +3,8 @@ import {
   ALLOTTED_HOURS_BY_SEMESTER,
   SEMESTER_DATES_BY_SEMESTER,
   SERIES_RANGES,
+  COURSE_TO_SUBJECT_MAPPING_SEM2,
+  SUBJECT_DISPLAY_ORDER_SEM2,
 } from '../constants';
 
 export const getCourseMapping = (semester) =>
@@ -141,3 +143,94 @@ export const normalizeCourseName = (courseName, semester) => {
 
   return raw;
 };
+
+// Subject mapping helpers for Semester 2
+export function getSubjectFromCourse(courseName, semester = 'Semester 2') {
+  if (semester !== 'Semester 2') return courseName;
+
+  const normalized = String(courseName || '').trim();
+  if (!normalized) return normalized;
+
+  // Direct lookup
+  if (COURSE_TO_SUBJECT_MAPPING_SEM2[normalized]) {
+    return COURSE_TO_SUBJECT_MAPPING_SEM2[normalized];
+  }
+
+  // Case-insensitive lookup
+  const lowerNormalized = normalized.toLowerCase();
+  for (const [course, subject] of Object.entries(COURSE_TO_SUBJECT_MAPPING_SEM2)) {
+    if (course.toLowerCase() === lowerNormalized) {
+      return subject;
+    }
+  }
+
+  // Partial match
+  for (const [course, subject] of Object.entries(COURSE_TO_SUBJECT_MAPPING_SEM2)) {
+    if (lowerNormalized.includes(course.toLowerCase()) ||
+        course.toLowerCase().includes(lowerNormalized)) {
+      return subject;
+    }
+  }
+
+  // Return original if no mapping found
+  return normalized;
+}
+
+// Group course data by subject
+export function groupCoursesBySubject(courseGroups, semester = 'Semester 2') {
+  if (semester !== 'Semester 2') return courseGroups;
+
+  const subjectGroups = {};
+
+  for (const [courseName, rows] of Object.entries(courseGroups)) {
+    const subjectName = getSubjectFromCourse(courseName, semester);
+
+    if (!subjectGroups[subjectName]) {
+      subjectGroups[subjectName] = [];
+    }
+
+    subjectGroups[subjectName].push(...rows);
+  }
+
+  return subjectGroups;
+}
+
+// Sort subjects by predefined order
+export function sortSubjectsByOrder(subjects) {
+  return subjects.sort((a, b) => {
+    const indexA = SUBJECT_DISPLAY_ORDER_SEM2.indexOf(a);
+    const indexB = SUBJECT_DISPLAY_ORDER_SEM2.indexOf(b);
+
+    // If both are in the order list, sort by index
+    if (indexA !== -1 && indexB !== -1) {
+      return indexA - indexB;
+    }
+
+    // If only one is in the list, prioritize it
+    if (indexA !== -1) return -1;
+    if (indexB !== -1) return 1;
+
+    // Otherwise alphabetical
+    return a.localeCompare(b);
+  });
+}
+
+// Aggregate assessment data by subject
+export function groupAssessmentBySubject(courseScores, semester = 'Semester 2') {
+  if (semester !== 'Semester 2') return courseScores;
+
+  const subjectScores = {};
+
+  for (const [courseName, data] of Object.entries(courseScores)) {
+    const subjectName = getSubjectFromCourse(courseName, semester);
+
+    if (!subjectScores[subjectName]) {
+      subjectScores[subjectName] = { scores: [], parts: [] };
+    }
+
+    subjectScores[subjectName].scores.push(...data.scores);
+    subjectScores[subjectName].parts.push(...data.parts);
+  }
+
+  return subjectScores;
+}

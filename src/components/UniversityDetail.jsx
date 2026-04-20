@@ -4,13 +4,22 @@ import AnimatedView from './ui/AnimatedView';
 import ScrollToTop from './ui/ScrollToTop';
 import DonutChart from './ui/DonutChart';
 import WorkloadBar from './ui/WorkloadBar';
-import { getSemesterDatesForInstitute, normalizeCourseName, r2 } from '../utils/semesterHelpers';
+import {
+  getSemesterDatesForInstitute,
+  normalizeCourseName,
+  r2,
+  getSubjectFromCourse,
+  groupCoursesBySubject,
+  sortSubjectsByOrder,
+  groupAssessmentBySubject,
+} from '../utils/semesterHelpers';
 import { addRipple } from '../utils/ripple';
 
 export default function UniversityDetail({ data, assessmentData, selectedInstitute, onBack, onReset, semester }) {
   const { isDark } = useTheme();
   const [selectedSection, setSelectedSection] = useState('');
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const [viewMode, setViewMode] = useState('course'); // 'course' or 'subject'
 
   const sections = useMemo(
     () => [...new Set(data.filter(d => d.institute === selectedInstitute).map(d => d.section).filter(Boolean))].sort(),
@@ -34,17 +43,23 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
       courseScores[name].scores.push(d.avg_score);
       courseScores[name].parts.push(d.avg_participation);
     });
-    const courses = Object.keys(courseScores).map(c => ({
+
+    // Group by subject if in subject view mode (Semester 2 only)
+    const groupedScores = viewMode === 'subject' && semester === 'Semester 2'
+      ? groupAssessmentBySubject(courseScores, semester)
+      : courseScores;
+
+    const courses = Object.keys(groupedScores).map(c => ({
       name: c,
-      avgScore: courseScores[c].scores.reduce((a, b) => a + b, 0) / courseScores[c].scores.length,
-      avgParticipation: courseScores[c].parts.reduce((a, b) => a + b, 0) / courseScores[c].parts.length,
+      avgScore: groupedScores[c].scores.reduce((a, b) => a + b, 0) / groupedScores[c].scores.length,
+      avgParticipation: groupedScores[c].parts.reduce((a, b) => a + b, 0) / groupedScores[c].parts.length,
     }));
     return {
       courses,
       overallScore: courses.reduce((s, c) => s + c.avgScore, 0) / courses.length,
       overallParticipation: courses.reduce((s, c) => s + c.avgParticipation, 0) / courses.length,
     };
-  }, [assessmentData, selectedInstitute, selectedSection, semester]);
+  }, [assessmentData, selectedInstitute, selectedSection, semester, viewMode]);
 
   const metrics = useMemo(() => {
     let filtered = data.filter(d => d.institute === selectedInstitute);
@@ -56,7 +71,16 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
       acc[courseName].push(row);
       return acc;
     }, {});
-    const courses = Object.keys(courseGroups).sort();
+
+    // Group by subject if in subject view mode (Semester 2 only)
+    const displayGroups = viewMode === 'subject' && semester === 'Semester 2'
+      ? groupCoursesBySubject(courseGroups, semester)
+      : courseGroups;
+
+    const courses = viewMode === 'subject' && semester === 'Semester 2'
+      ? sortSubjectsByOrder(Object.keys(displayGroups))
+      : Object.keys(displayGroups).sort();
+
     const lec = filtered.filter(d => d.session_type === 'LECTURE');
     const prac = filtered.filter(d => d.session_type === 'PRACTICE');
     const exam = filtered.filter(d => d.session_type === 'EXAM');
@@ -64,7 +88,7 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
     const avg = (a, k) => a.length ? sum(a, k) / a.length : 0;
     return {
       courses, courseCount: courses.length,
-      courseGroups,
+      courseGroups: displayGroups,
       lectureCount: sum(lec, 'sessions'),
       practiceCount: sum(prac, 'sessions'),
       examCount: sum(exam, 'sessions'),
@@ -80,7 +104,7 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
       practiceP80Time: sum(prac, 'p80_time'),
       filtered,
     };
-  }, [data, selectedInstitute, selectedSection]);
+  }, [data, selectedInstitute, selectedSection, semester, viewMode]);
 
   if (!metrics) {
     return (
@@ -121,7 +145,7 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
     ? 'text-slate-400 hover:text-slate-100 hover:bg-slate-700'
     : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100';
 
-  const SidebarContent = () => (
+  const SidebarContent = ({ viewMode }) => (
     <>
       <h3 className={`text-sm font-semibold mb-4 ${headingColor}`}>Semester Timeline</h3>
       {dates ? (
@@ -142,7 +166,7 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
         <h4 className={`text-xs font-semibold uppercase mb-3 ${muted}`}>Quick Stats</h4>
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
-            <span className={subColor}>Courses</span>
+            <span className={subColor}>{viewMode === 'subject' ? 'Subjects' : 'Courses'}</span>
             <span className={`font-semibold ${bodyText}`}>{metrics.courseCount}</span>
           </div>
           <div className="flex justify-between">
@@ -325,7 +349,7 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
           </button>
           {sidebarExpanded && (
             <div className={`mt-2 rounded-xl p-5 animate-fade-slide-up ${cardBg}`}>
-              <SidebarContent />
+              <SidebarContent viewMode={viewMode} />
             </div>
           )}
         </div>
@@ -334,7 +358,7 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
           {/* Desktop sidebar */}
           <div className="hidden lg:block w-64 flex-shrink-0">
             <div className={`rounded-xl p-5 sticky top-5 ${cardBg}`}>
-              <SidebarContent />
+              <SidebarContent viewMode={viewMode} />
             </div>
           </div>
 
@@ -415,17 +439,56 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
               </div>
             </div>
 
-            {/* Course-wise Breakdown */}
+            {/* Course-wise / Subject-wise Breakdown */}
             <div
               className={`mt-5 rounded-xl overflow-hidden animate-fade-slide-up ${cardBg}`}
               style={{ animationDelay: '0.12s' }}
             >
               <div className={`px-5 py-4 border-b flex items-center justify-between ${isDark ? 'border-slate-700 bg-slate-900/40' : 'border-slate-200 bg-white/70'}`}>
-                <div>
-                  <h3 className={`text-sm font-semibold ${headingColor}`}>Course-wise Breakdown</h3>
-                  <p className={`mt-0.5 text-xs ${muted}`}>
-                    Practice% and Exam% are completion rates. Score% is average assessment score. Participation# is average learner count.
-                  </p>
+                <div className="flex items-center gap-4">
+                  <div>
+                    <h3 className={`text-sm font-semibold ${headingColor}`}>
+                      {viewMode === 'subject' ? 'Subject-wise Breakdown' : 'Course-wise Breakdown'}
+                    </h3>
+                    <p className={`mt-0.5 text-xs ${muted}`}>
+                      {viewMode === 'subject'
+                        ? 'Aggregated data by subject across all courses. Practice% and Exam% are completion rates. Score% is average assessment score.'
+                        : 'Practice% and Exam% are completion rates. Score% is average assessment score. Participation# is average learner count.'}
+                    </p>
+                  </div>
+                  {/* View Mode Toggle - only show for Semester 2 */}
+                  {semester === 'Semester 2' && (
+                    <div className={`flex items-center gap-1 rounded-lg p-1 ${isDark ? 'bg-slate-700' : 'bg-gray-100'}`}>
+                      <button
+                        onClick={() => setViewMode('course')}
+                        className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                          viewMode === 'course'
+                            ? isDark
+                              ? 'bg-slate-600 text-white'
+                              : 'bg-white text-gray-800 shadow-sm'
+                            : isDark
+                              ? 'text-slate-400 hover:text-slate-200'
+                              : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                      >
+                        Course
+                      </button>
+                      <button
+                        onClick={() => setViewMode('subject')}
+                        className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                          viewMode === 'subject'
+                            ? isDark
+                              ? 'bg-slate-600 text-white'
+                              : 'bg-white text-gray-800 shadow-sm'
+                            : isDark
+                              ? 'text-slate-400 hover:text-slate-200'
+                              : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                      >
+                        Subject
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <span className={`text-xs sm:hidden ${muted}`}>← scroll →</span>
               </div>
@@ -433,7 +496,9 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
                 <table className={`w-full min-w-[780px] ${tableBg}`}>
                   <thead className={tableHeaderBg}>
                     <tr className={`text-xs uppercase tracking-wider ${tableHeaderText}`}>
-                      <th className={`text-left px-4 py-3 font-medium sticky left-0 z-10 ${tableStickyHeader}`}>Course</th>
+                      <th className={`text-left px-4 py-3 font-medium sticky left-0 z-10 ${tableStickyHeader}`}>
+                        {viewMode === 'subject' ? 'Subject' : 'Course'}
+                      </th>
                       <th className={`text-center px-2 py-3 font-medium ${isDark ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>Lect Sess</th>
                       <th className={`text-center px-2 py-3 font-medium ${isDark ? 'bg-emerald-900/30 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>Prac Sess</th>
                       <th className={`text-center px-2 py-3 font-medium ${isDark ? 'bg-amber-900/30 text-amber-400' : 'bg-amber-50 text-amber-600'}`}>Exam Sess</th>
