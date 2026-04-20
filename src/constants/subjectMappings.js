@@ -4,37 +4,53 @@
 export const COURSE_TO_SUBJECT_MAPPING_SEM2 = {
   // Web Application Development - 2
   'Web Application Development 2': 'Web Application Development - 2',
+  'Web Application Development - 2': 'Web Application Development - 2',
   'Js essentials': 'Web Application Development - 2',
   'JavaScript Essentials': 'Web Application Development - 2',
   'JavaScript Programming': 'Web Application Development - 2',
   'Introduction to React JS': 'Web Application Development - 2',
+  'Introduction to React': 'Web Application Development - 2',
   'React JS': 'Web Application Development - 2',
+  'React': 'Web Application Development - 2',
   'Node JS': 'Web Application Development - 2',
+  'Node': 'Web Application Development - 2',
+  'Node.js': 'Web Application Development - 2',
 
   // Linear Algebra & Calculus
   'Linear Algebra & Calculus': 'Linear Algebra and Calculus',
+  'Linear Algebra and Calculus': 'Linear Algebra and Calculus',
   'Linear Algebra': 'Linear Algebra and Calculus',
   'Calculus': 'Linear Algebra and Calculus',
   'Mathematics': 'Linear Algebra and Calculus',
+  'Maths': 'Linear Algebra and Calculus',
 
   // Database Management Systems
   'Database Management Systems': 'Data Base Management System',
+  'Data Base Management System': 'Data Base Management System',
   'Introduction to Database': 'Data Base Management System',
   'Introduction to Databases': 'Data Base Management System',
   'DBMS Fundamentals': 'Data Base Management System',
   'MongoDB': 'Data Base Management System',
+  'SQL': 'Data Base Management System',
 
   // Numerical Aptitude
   'Numerical Aptitude': 'Numerical Ability',
+  'Numerical Ability': 'Numerical Ability',
   'Quantitative Aptitude': 'Numerical Ability',
   'Logical Thinking': 'Numerical Ability',
 
   // English Advanced
   'English Advanced': 'Advanced English',
+  'Advanced English': 'Advanced English',
   'Communicative English Foundation': 'Advanced English',
+  'Communicative English Advanced': 'Advanced English',
+  'Advanced Communicative English': 'Advanced English',
+  'English Course': 'Advanced English',
   'Business English': 'Advanced English',
   'Comunicative English Advanced': 'Advanced English',
   'English B1 Level Learner Program': 'Advanced English',
+  'B1 Level English': 'Advanced English',
+  'English B1': 'Advanced English',
 
   // Data Structures
   'Data Structures': 'Data Structures',
@@ -119,6 +135,13 @@ export const SUBJECT_DISPLAY_ORDER_SEM2 = [
   'Assessment',
 ];
 
+// Normalize text for matching
+const normalizeText = (value) =>
+  String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+
 // Helper function to get subject from course name
 export function getSubjectFromCourse(courseName, semester = 'Semester 2') {
   if (semester !== 'Semester 2') return courseName;
@@ -139,10 +162,26 @@ export function getSubjectFromCourse(courseName, semester = 'Semester 2') {
     }
   }
 
-  // Partial match
+  // Normalized lookup (removes special chars)
+  const normalizedKey = normalizeText(normalized);
   for (const [course, subject] of Object.entries(COURSE_TO_SUBJECT_MAPPING_SEM2)) {
-    if (lowerNormalized.includes(course.toLowerCase()) ||
-        course.toLowerCase().includes(lowerNormalized)) {
+    if (normalizeText(course) === normalizedKey) {
+      return subject;
+    }
+  }
+
+  // Partial match on original
+  for (const [course, subject] of Object.entries(COURSE_TO_SUBJECT_MAPPING_SEM2)) {
+    const lowerCourse = course.toLowerCase();
+    if (lowerNormalized.includes(lowerCourse) || lowerCourse.includes(lowerNormalized)) {
+      return subject;
+    }
+  }
+
+  // Partial match on normalized
+  for (const [course, subject] of Object.entries(COURSE_TO_SUBJECT_MAPPING_SEM2)) {
+    const normCourse = normalizeText(course);
+    if (normalizedKey.includes(normCourse) || normCourse.includes(normalizedKey)) {
       return subject;
     }
   }
