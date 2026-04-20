@@ -12,9 +12,6 @@ export const COURSE_TO_SUBJECT_MAPPING_SEM2 = {
   'Introduction to React': 'Web Application Development - 2',
   'React JS': 'Web Application Development - 2',
   'React': 'Web Application Development - 2',
-  'Node JS': 'Web Application Development - 2',
-  'Node': 'Web Application Development - 2',
-  'Node.js': 'Web Application Development - 2',
 
   // Linear Algebra & Calculus
   'Linear Algebra & Calculus': 'Linear Algebra and Calculus',
