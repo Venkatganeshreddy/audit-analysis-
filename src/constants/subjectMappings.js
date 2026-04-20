@@ -1,183 +1,200 @@
 // Course to Subject mapping for NIAT 2025 Semester 2
-// Maps canonical course names to their parent Subject
+// Maps ALL courses to ONLY the approved subject list
 
 export const COURSE_TO_SUBJECT_MAPPING_SEM2 = {
-  // Web Application Development - 2
-  'Web Application Development 2': 'Web Application Development - 2',
-  'Web Application Development - 2': 'Web Application Development - 2',
-  'Js essentials': 'Web Application Development - 2',
-  'JS Essentials': 'Web Application Development - 2',
-  'JavaScript Essentials': 'Web Application Development - 2',
-  'JavaScript Programming': 'Web Application Development - 2',
-  'Introduction to React JS': 'Web Application Development - 2',
-  'Introduction to React': 'Web Application Development - 2',
-  'React JS': 'Web Application Development - 2',
-  'React': 'Web Application Development - 2',
-  'react js': 'Web Application Development - 2',
-  'react': 'Web Application Development - 2',
+  // WA2 - Web development - II
+  'Web Application Development 2': 'WA2 - Web development - II',
+  'Web Application Development - 2': 'WA2 - Web development - II',
+  'Js essentials': 'WA2 - Web development - II',
+  'JS Essentials': 'WA2 - Web development - II',
+  'JavaScript Essentials': 'WA2 - Web development - II',
+  'JavaScript Programming': 'WA2 - Web development - II',
+  'Introduction to React JS': 'WA2 - Web development - II',
+  'Introduction to React': 'WA2 - Web development - II',
+  'React JS': 'WA2 - Web development - II',
+  'React': 'WA2 - Web development - II',
+  'react js': 'WA2 - Web development - II',
+  'react': 'WA2 - Web development - II',
+  'web application development': 'WA2 - Web development - II',
+  'wa2': 'WA2 - Web development - II',
 
-  // Linear Algebra & Calculus
-  'Linear Algebra & Calculus': 'Linear Algebra and Calculus',
-  'Linear Algebra and Calculus': 'Linear Algebra and Calculus',
-  'Linear Algebra': 'Linear Algebra and Calculus',
-  'Calculus': 'Linear Algebra and Calculus',
-  'Mathematics': 'Linear Algebra and Calculus',
-  'Maths': 'Linear Algebra and Calculus',
-  'mathematics': 'Linear Algebra and Calculus',
-  'maths': 'Linear Algebra and Calculus',
-  'math': 'Linear Algebra and Calculus',
+  // DBMS - Database management systems
+  'Database Management Systems': 'DBMS - Database management systems',
+  'Data Base Management System': 'DBMS - Database management systems',
+  'Introduction to Database': 'DBMS - Database management systems',
+  'Introduction to Databases': 'DBMS - Database management systems',
+  'DBMS Fundamentals': 'DBMS - Database management systems',
+  'MongoDB': 'DBMS - Database management systems',
+  'SQL': 'DBMS - Database management systems',
+  'sql': 'DBMS - Database management systems',
+  'Dbms fundamentals': 'DBMS - Database management systems',
+  'mongodb': 'DBMS - Database management systems',
+  'Introduction to databases': 'DBMS - Database management systems',
+  'dbms': 'DBMS - Database management systems',
 
-  // Database Management Systems
-  'Database Management Systems': 'Data Base Management System',
-  'Data Base Management System': 'Data Base Management System',
-  'Introduction to Database': 'Data Base Management System',
-  'Introduction to Databases': 'Data Base Management System',
-  'DBMS Fundamentals': 'Data Base Management System',
-  'MongoDB': 'Data Base Management System',
-  'SQL': 'Data Base Management System',
-  'sql': 'Data Base Management System',
-  'Dbms fundamentals': 'Data Base Management System',
-  'mongodb': 'Data Base Management System',
-  'Introduction to databases': 'Data Base Management System',
+  // DS - Data Structures
+  'Data Structures': 'DS - Data Structures',
+  'Data Structures and Algorithm': 'DS - Data Structures',
+  'DSA': 'DS - Data Structures',
+  'DSA Foundation': 'DS - Data Structures',
+  'DSA Level 1': 'DS - Data Structures',
+  'NIAT-DSA': 'DS - Data Structures',
+  'Academy - DSA': 'DS - Data Structures',
+  'data structures': 'DS - Data Structures',
+  'niat-dsa': 'DS - Data Structures',
+  'ds': 'DS - Data Structures',
 
-  // Numerical Aptitude
-  'Numerical Aptitude': 'Numerical Ability',
-  'Numerical Ability': 'Numerical Ability',
-  'Quantitative Aptitude': 'Numerical Ability',
-  'Logical Thinking': 'Numerical Ability',
-  'numerical ability': 'Numerical Ability',
-  'numerical aptitude': 'Numerical Ability',
+  // NA - Numerical Ability
+  'Numerical Aptitude': 'NA - Numerical Ability',
+  'Numerical Ability': 'NA - Numerical Ability',
+  'Quantitative Aptitude': 'NA - Numerical Ability',
+  'Logical Thinking': 'NA - Numerical Ability',
+  'numerical ability': 'NA - Numerical Ability',
+  'numerical aptitude': 'NA - Numerical Ability',
+  'na': 'NA - Numerical Ability',
 
-  // English Advanced
-  'English Advanced': 'Advanced English',
-  'Advanced English': 'Advanced English',
-  'Communicative English Foundation': 'Advanced English',
-  'Communicative English Advanced': 'Advanced English',
-  'Advanced Communicative English': 'Advanced English',
-  'English Course': 'Advanced English',
-  'Business English': 'Advanced English',
-  'Comunicative English Advanced': 'Advanced English',
-  'English B1 Level Learner Program': 'Advanced English',
-  'B1 Level English': 'Advanced English',
-  'English B1': 'Advanced English',
-  'english course': 'Advanced English',
-  'advanced english': 'Advanced English',
-  'communicative english': 'Advanced English',
+  // EA - Advanced English
+  'English Advanced': 'EA - Advanced English',
+  'Advanced English': 'EA - Advanced English',
+  'Communicative English Foundation': 'EA - Advanced English',
+  'Communicative English Advanced': 'EA - Advanced English',
+  'Advanced Communicative English': 'EA - Advanced English',
+  'English Course': 'EA - Advanced English',
+  'Business English': 'EA - Advanced English',
+  'Comunicative English Advanced': 'EA - Advanced English',
+  'English B1 Level Learner Program': 'EA - Advanced English',
+  'B1 Level English': 'EA - Advanced English',
+  'English B1': 'EA - Advanced English',
+  'english course': 'EA - Advanced English',
+  'advanced english': 'EA - Advanced English',
+  'communicative english': 'EA - Advanced English',
+  'ea': 'EA - Advanced English',
 
-  // Data Structures
-  'Data Structures': 'Data Structures',
-  'Data Structures and Algorithm': 'Data Structures',
-  'DSA': 'Data Structures',
-  'DSA Foundation': 'Data Structures',
-  'DSA Level 1': 'Data Structures',
-  'NIAT-DSA': 'Data Structures',
-  'Academy - DSA': 'Data Structures',
-  'data structures': 'Data Structures',
-  'niat-dsa': 'Data Structures',
+  // LLM - Build LLM Applications
+  'Large Language Models': 'LLM - Build LLM Applications',
+  'LLM': 'LLM - Build LLM Applications',
+  'Generative AI': 'LLM - Build LLM Applications',
+  'Building REST API with Flask': 'LLM - Build LLM Applications',
+  'Building LLM Applications': 'LLM - Build LLM Applications',
+  'building llm applications': 'LLM - Build LLM Applications',
+  'llm': 'LLM - Build LLM Applications',
 
-  // Large Language Models
-  'Large Language Models': 'Building LLM Applications',
-  'LLM': 'Building LLM Applications',
-  'Generative AI': 'Building LLM Applications',
-  'Building REST API with Flask': 'Building LLM Applications',
-  'Building LLM Applications': 'Building LLM Applications',
-  'building llm applications': 'Building LLM Applications',
+  // Phy - Physics
+  'Physics': 'Phy - Physics',
+  'Engineering Physics': 'Phy - Physics',
+  'physics': 'Phy - Physics',
+  'phy': 'Phy - Physics',
 
-  // Indian Knowledge System
-  'Indian Knowledge System': 'Indian Knowledge System',
-  'IKS': 'Indian Knowledge System',
-  'Indian Knowledge Systems': 'Indian Knowledge System',
-  'indian knowledge system': 'Indian Knowledge System',
-
-  // Engineering Drawing
-  'Engineering Drawing': 'Engineering Drawing',
-  'Engineering Drawing / Design Drafting': 'Engineering Drawing',
-  'engineering drawing': 'Engineering Drawing',
-
-  // Physics
-  'Physics': 'Physics',
-  'Engineering Physics': 'Physics',
-  'physics': 'Physics',
-
-  // Environmental Science
-  'Environmental Science': 'Environmental Studies',
-  'Environmental Studies': 'Environmental Studies',
-  'environmental science': 'Environmental Studies',
+  // Che - Chemistry
+  'Chemistry': 'Che - Chemistry',
+  'che': 'Che - Chemistry',
 
   // Yoga
   'Yoga': 'Yoga',
   'yoga': 'Yoga',
 
-  // Talent Development Program
-  'Talent Development Program': 'Talent Development Program',
-  'TDP': 'Talent Development Program',
+  // TDP - Trans- Disciplinary Project
+  'Talent Development Program': 'TDP - Trans- Disciplinary Project',
+  'TDP': 'TDP - Trans- Disciplinary Project',
+  'tdp': 'TDP - Trans- Disciplinary Project',
+  'Talent Development': 'TDP - Trans- Disciplinary Project',
 
-  // Human Values & Ethics
-  'Human Values & Ethics': 'Human Values & Ethics',
-  'Human Values': 'Human Values & Ethics',
-  'HVS': 'Human Values & Ethics',
+  // HVS - Human Value Systems
+  'Human Values & Ethics': 'HVS - Human Value Systems',
+  'Human Values': 'HVS - Human Value Systems',
+  'HVS': 'HVS - Human Value Systems',
+  'Human Value Systems': 'HVS - Human Value Systems',
+  'human values': 'HVS - Human Value Systems',
+  'hvs': 'HVS - Human Value Systems',
 
-  // Indian Constitution
-  'Indian Constitution': 'Indian Constitution',
+  // AS - Applied Sciences
+  'Assessment': 'AS - Applied Sciences',
+  'AS': 'AS - Applied Sciences',
+  'as': 'AS - Applied Sciences',
+  'Applied Sciences': 'AS - Applied Sciences',
 
-  // Language Elective
-  'Language Elective': 'Language Elective',
+  // BE - Basic Electronics
+  'Business English': 'BE - Basic Electronics',
+  'Basic Electronics': 'BE - Basic Electronics',
+  'be': 'BE - Basic Electronics',
 
-  // Cloud Computing
-  'Cloud Computing': 'Cloud Computing',
+  // IKS - Indian Knowledge Systems
+  'Indian Knowledge System': 'IKS - Indian Knowledge Systems',
+  'IKS': 'IKS - Indian Knowledge Systems',
+  'Indian Knowledge Systems': 'IKS - Indian Knowledge Systems',
+  'indian knowledge system': 'IKS - Indian Knowledge Systems',
+  'iks': 'IKS - Indian Knowledge Systems',
 
-  // Chemistry
-  'Chemistry': 'Chemistry',
+  // LA&C - Linear Algebra & Calculus
+  'Linear Algebra & Calculus': 'LA&C - Linear Algebra & Calculus',
+  'Linear Algebra and Calculus': 'LA&C - Linear Algebra & Calculus',
+  'Linear Algebra': 'LA&C - Linear Algebra & Calculus',
+  'Calculus': 'LA&C - Linear Algebra & Calculus',
+  'Mathematics': 'LA&C - Linear Algebra & Calculus',
+  'Maths': 'LA&C - Linear Algebra & Calculus',
+  'mathematics': 'LA&C - Linear Algebra & Calculus',
+  'maths': 'LA&C - Linear Algebra & Calculus',
+  'math': 'LA&C - Linear Algebra & Calculus',
+  'la&c': 'LA&C - Linear Algebra & Calculus',
 
-  // Assessment
-  'Assessment': 'Assessment',
+  // ENV - Environmental Studies
+  'Environmental Science': 'ENV - Environmental Studies',
+  'Environmental Studies': 'ENV - Environmental Studies',
+  'environmental science': 'ENV - Environmental Studies',
+  'environmental studies': 'ENV - Environmental Studies',
+  'env': 'ENV - Environmental Studies',
+
+  // IC - Indian Constitution
+  'Indian Constitution': 'IC - Indian Constitution',
+  'indian constitution': 'IC - Indian Constitution',
+  'ic': 'IC - Indian Constitution',
+
+  // LA-E - Language Analytics - Elective
+  'Language Elective': 'LA-E - Language Analytics - Elective',
+  'language elective': 'LA-E - Language Analytics - Elective',
+  'la-e': 'LA-E - Language Analytics - Elective',
+  'Language Analytics': 'LA-E - Language Analytics - Elective',
+
+  // ED - Engineering Drawing
+  'Engineering Drawing': 'ED - Engineering Drawing',
+  'Engineering Drawing / Design Drafting': 'ED - Engineering Drawing',
+  'engineering drawing': 'ED - Engineering Drawing',
+  'ed': 'ED - Engineering Drawing',
+
+  // CC - Co Curricular Activities
+  'Cloud Computing': 'CC - Co Curricular Activities',
+  'cloud computing': 'CC - Co Curricular Activities',
+  'cc': 'CC - Co Curricular Activities',
+  'Co Curricular': 'CC - Co Curricular Activities',
+  'Co Curricular Activities': 'CC - Co Curricular Activities',
 };
 
-// Keyword-based subject detection
-const SUBJECT_KEYWORDS = {
-  'Web Application Development - 2': ['web application', 'js essentials', 'javascript', 'react', 'js programming'],
-  'Data Base Management System': ['database', 'dbms', 'sql', 'mongodb', 'mongo'],
-  'Data Structures': ['data structures', 'dsa', 'data structure'],
-  'Linear Algebra and Calculus': ['linear algebra', 'calculus', 'mathematics', 'maths', 'math'],
-  'Building LLM Applications': ['llm', 'large language', 'generative ai', 'flask', 'building llm'],
-  'Advanced English': ['english', 'communicative', 'b1 level'],
-  'Numerical Ability': ['numerical', 'quantitative', 'logical thinking'],
-  'Physics': ['physics'],
-  'Chemistry': ['chemistry'],
-  'Engineering Drawing': ['engineering drawing', 'design drafting'],
-  'Indian Knowledge System': ['indian knowledge', 'iks'],
-  'Environmental Studies': ['environmental', 'environtmenal'],
-  'Human Values & Ethics': ['human values', 'hvs', 'ethics'],
-  'Indian Constitution': ['constitution'],
-  'Yoga': ['yoga'],
-  'Talent Development Program': ['talent development', 'tdp'],
-  'Language Elective': ['language elective'],
-  'Cloud Computing': ['cloud computing'],
-  'Assessment': ['assessment'],
-};
+// List of allowed subjects - ONLY these will be shown
+export const ALLOWED_SUBJECTS_SEM2 = [
+  'WA2 - Web development - II',
+  'DBMS - Database management systems',
+  'DS - Data Structures',
+  'NA - Numerical Ability',
+  'EA - Advanced English',
+  'LLM - Build LLM Applications',
+  'Phy - Physics',
+  'Che - Chemistry',
+  'Yoga',
+  'TDP - Trans- Disciplinary Project',
+  'HVS - Human Value Systems',
+  'AS - Applied Sciences',
+  'BE - Basic Electronics',
+  'IKS - Indian Knowledge Systems',
+  'LA&C - Linear Algebra & Calculus',
+  'ENV - Environmental Studies',
+  'IC - Indian Constitution',
+  'LA-E - Language Analytics - Elective',
+  'ED - Engineering Drawing',
+  'CC - Co Curricular Activities',
+];
 
 // Subject display order (for consistent UI)
-export const SUBJECT_DISPLAY_ORDER_SEM2 = [
-  'Web Application Development - 2',
-  'Data Structures',
-  'Data Base Management System',
-  'Linear Algebra and Calculus',
-  'Building LLM Applications',
-  'Advanced English',
-  'Numerical Ability',
-  'Physics',
-  'Chemistry',
-  'Engineering Drawing',
-  'Indian Knowledge System',
-  'Environmental Studies',
-  'Human Values & Ethics',
-  'Indian Constitution',
-  'Yoga',
-  'Talent Development Program',
-  'Language Elective',
-  'Cloud Computing',
-  'Assessment',
-];
+export const SUBJECT_DISPLAY_ORDER_SEM2 = [...ALLOWED_SUBJECTS_SEM2];
 
 // Normalize text for matching
 const normalizeText = (value) =>
@@ -214,15 +231,6 @@ export function getSubjectFromCourse(courseName, semester = 'Semester 2') {
     }
   }
 
-  // Keyword-based matching
-  for (const [subject, keywords] of Object.entries(SUBJECT_KEYWORDS)) {
-    for (const keyword of keywords) {
-      if (lowerNormalized.includes(keyword.toLowerCase())) {
-        return subject;
-      }
-    }
-  }
-
   // Partial match on original
   for (const [course, subject] of Object.entries(COURSE_TO_SUBJECT_MAPPING_SEM2)) {
     const lowerCourse = course.toLowerCase();
@@ -239,11 +247,16 @@ export function getSubjectFromCourse(courseName, semester = 'Semester 2') {
     }
   }
 
-  // Return original if no mapping found
-  return normalized;
+  // Return null if no mapping found (will be filtered out)
+  return null;
+}
+
+// Helper to check if a subject is allowed
+export function isAllowedSubject(subjectName) {
+  return ALLOWED_SUBJECTS_SEM2.includes(subjectName);
 }
 
 // Helper to get all unique subjects for Semester 2
 export function getAllSubjectsSem2() {
-  return [...new Set(Object.values(COURSE_TO_SUBJECT_MAPPING_SEM2))];
+  return [...ALLOWED_SUBJECTS_SEM2];
 }

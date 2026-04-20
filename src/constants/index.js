@@ -6,6 +6,8 @@ export { AGENT_CONFIG, SEVERITY_COLORS } from './agentConfig';
 export {
   COURSE_TO_SUBJECT_MAPPING_SEM2,
   SUBJECT_DISPLAY_ORDER_SEM2,
+  ALLOWED_SUBJECTS_SEM2,
   getSubjectFromCourse,
   getAllSubjectsSem2,
+  isAllowedSubject,
 } from './subjectMappings';

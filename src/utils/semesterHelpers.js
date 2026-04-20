@@ -5,6 +5,7 @@ import {
   SERIES_RANGES,
   COURSE_TO_SUBJECT_MAPPING_SEM2,
   SUBJECT_DISPLAY_ORDER_SEM2,
+  isAllowedSubject,
 } from '../constants';
 
 export const getCourseMapping = (semester) =>
@@ -185,6 +186,11 @@ export function groupCoursesBySubject(courseGroups, semester = 'Semester 2') {
   for (const [courseName, rows] of Object.entries(courseGroups)) {
     const subjectName = getSubjectFromCourse(courseName, semester);
 
+    // Skip if no subject mapping found or subject not in allowed list
+    if (!subjectName || !isAllowedSubject(subjectName)) {
+      continue;
+    }
+
     if (!subjectGroups[subjectName]) {
       subjectGroups[subjectName] = [];
     }
@@ -223,6 +229,11 @@ export function groupAssessmentBySubject(courseScores, semester = 'Semester 2') 
 
   for (const [courseName, data] of Object.entries(courseScores)) {
     const subjectName = getSubjectFromCourse(courseName, semester);
+
+    // Skip if no subject mapping found or subject not in allowed list
+    if (!subjectName || !isAllowedSubject(subjectName)) {
+      continue;
+    }
 
     if (!subjectScores[subjectName]) {
       subjectScores[subjectName] = { scores: [], parts: [] };
