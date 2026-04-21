@@ -870,6 +870,13 @@ def build_university_overview_rows(universities, semester: str, batch: str):
     return timeline_df.merge(metric_rows, on="University", how="left").reset_index(drop=True)
 
 
+def get_available_sections(data_df: pd.DataFrame, university_name: str):
+    if data_df.empty or not university_name:
+        return []
+    section_values = data_df[data_df["institute"] == university_name]["section"].dropna().unique().tolist()
+    return sorted([section for section in section_values if section and str(section).strip().lower() != "unknown"])
+
+
 
 def queue_course_breakdown_navigation(university_name: str):
     if university_name:
@@ -1048,6 +1055,13 @@ def fetch_semester_data(batch: str, semester: str) -> pd.DataFrame:
           FROM {refs["users"]} u
           WHERE TRIM(COALESCE(u.institute_name, '')) != ''
           GROUP BY institute, section
+        ),
+        roster_counts AS (
+          SELECT
+            institute,
+            COUNT(DISTINCT IF(LOWER(section) != 'unknown', section, NULL)) AS section_count
+          FROM roster
+          GROUP BY institute
         )
         SELECT
           sc.course AS course,
@@ -1065,6 +1079,7 @@ def fetch_semester_data(batch: str, semester: str) -> pd.DataFrame:
           ) AS completion,
           0 AS avg_time,
           0 AS p80_time,
+          COALESCE(rc.section_count, 0) AS section_count,
           '{sql_escape(batch)}' AS batch,
           '{sql_escape(semester)}' AS semester,
           CAST(MAX(sc.report_date) AS STRING) AS report_date
@@ -1072,7 +1087,9 @@ def fetch_semester_data(batch: str, semester: str) -> pd.DataFrame:
         LEFT JOIN roster r
           ON r.institute = sc.institute
           AND r.section = sc.section
-        GROUP BY course, institute, section, session_type, students
+        LEFT JOIN roster_counts rc
+          ON rc.institute = sc.institute
+        GROUP BY course, institute, section, session_type, students, section_count
         HAVING sessions > 0
         ORDER BY institute, section, course
     """
@@ -1221,7 +1238,11 @@ def calc_univ_assessment(assessment_df: pd.DataFrame, univ_name: str):
     univ_data = assessment_df[assessment_df["university"] == univ_name].copy()
     if univ_data.empty:
         return empty_response
-    sections = [section for section in sorted(univ_data["section"].dropna().unique()) if section]
+    sections = [
+        section
+        for section in sorted(univ_data["section"].dropna().unique())
+        if section and str(section).strip().lower() != "unknown"
+    ]
     if len(sections) <= 1:
         overall = summarize_assessment_subset(univ_data)
         skill = summarize_assessment_subset(univ_data, "Skill Assessment")
@@ -1277,7 +1298,17 @@ def calculate_series_data(data_df: pd.DataFrame, assessment_df: pd.DataFrame, an
 
     for institute in institutes:
         institute_df = data_df[data_df["institute"] == institute]
-        sections = [section for section in sorted(institute_df["section"].dropna().unique()) if section]
+        sections = [
+            section
+            for section in sorted(institute_df["section"].dropna().unique())
+            if section and str(section).strip().lower() != "unknown"
+        ]
+        roster_section_count = 0
+        if "section_count" in institute_df.columns:
+            section_count_values = pd.to_numeric(institute_df["section_count"], errors="coerce").dropna()
+            section_count_values = section_count_values[section_count_values > 0]
+            if not section_count_values.empty:
+                roster_section_count = int(section_count_values.max())
 
         def calc_section_metric(section_df: pd.DataFrame):
             lecture_df = section_df[section_df["session_type"] == "LECTURE"]
@@ -1310,7 +1341,7 @@ def calculate_series_data(data_df: pd.DataFrame, assessment_df: pd.DataFrame, an
         university_metrics.append(
             {
                 "name": institute,
-                "sectionCount": len(sections) or 1,
+                "sectionCount": roster_section_count or len(sections) or 1,
                 "avgSessions": average("totalSessions"),
                 "avgClassSize": average("classSize"),
                 "avgLectureCompletion": average("lectureCompletion"),
@@ -1805,7 +1836,7 @@ def main():
             current_section_options = ["All Sections"]
             current_selected_university = st.session_state.get("selected_university")
             if current_selected_university in overview_university_options:
-                available_sections = sorted(semester_df[semester_df["institute"] == current_selected_university]["section"].dropna().unique().tolist())
+                available_sections = get_available_sections(semester_df, current_selected_university)
                 current_section_options = ["All Sections"] + available_sections if available_sections else ["All Sections"]
             apply_pending_navigation_state(overview_university_options, current_section_options)
             if st.session_state.get("selected_university") not in overview_university_options:
@@ -1842,7 +1873,7 @@ def main():
         if st.session_state.get("selected_university") not in university_options:
             st.session_state["selected_university"] = university_options[0]
         selected_university = st.session_state.get("selected_university", university_options[0])
-        sections = sorted(semester_df[semester_df["institute"] == selected_university]["section"].dropna().unique().tolist())
+        sections = get_available_sections(semester_df, selected_university)
         section_options = ["All Sections"] + sections if sections else ["All Sections"]
         if st.session_state.get("selected_section_label") not in section_options:
             st.session_state["selected_section_label"] = "All Sections"
@@ -1862,11 +1893,11 @@ def main():
         if st.session_state.get("selected_university") not in university_options:
             st.session_state["selected_university"] = university_options[0]
         selected_university = st.session_state["selected_university"]
-        sections = sorted(semester_df[semester_df["institute"] == selected_university]["section"].dropna().unique().tolist())
+        sections = get_available_sections(semester_df, selected_university)
         section_options = ["All Sections"] + sections if sections else ["All Sections"]
         apply_pending_navigation_state(university_options, section_options)
         selected_university = st.session_state.get("selected_university", selected_university)
-        sections = sorted(semester_df[semester_df["institute"] == selected_university]["section"].dropna().unique().tolist())
+        sections = get_available_sections(semester_df, selected_university)
         section_options = ["All Sections"] + sections if sections else ["All Sections"]
         with filter_col_2:
             selected_university = st.selectbox("University", university_options, key="selected_university")
@@ -2098,7 +2129,7 @@ def main():
                 if st.button("←", key="overview_back_arrow", use_container_width=True):
                     queue_overview_navigation()
                     st.rerun()
-            sections = sorted(semester_df[semester_df["institute"] == selected_university]["section"].dropna().unique().tolist())
+            sections = get_available_sections(semester_df, selected_university)
             section_options = ["All Sections"] + sections if sections else ["All Sections"]
             if st.session_state.get("selected_section_label") not in section_options:
                 st.session_state["selected_section_label"] = "All Sections"

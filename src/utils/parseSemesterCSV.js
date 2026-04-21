@@ -11,6 +11,7 @@ export const parseSemesterCSV = (text) => {
     completion: findCol('average of % completed', 'average of %', '% completed', 'completed'),
     avgTime: findCol('sum of avg_time_spent_to_complete', 'avg_time_spent_to_complete', 'avg_time_spent', 'avg_time'),
     p80Time: findCol('sum of p80_time_to_completed', 'p80_time_to_completed', 'p80_time'),
+    sectionCount: findCol('section_count', 'sections_count', 'sections'),
     batch: findCol('batch'), semester: findCol('semester'), reportDate: findCol('report_date', 'date'),
   };
   const result = [];
@@ -22,7 +23,7 @@ export const parseSemesterCSV = (text) => {
     const getNum = (idx) => parseFloat(get(idx).replace('%', '')) || 0;
     const course = get(cols.course), institute = get(cols.institute), sessionType = get(cols.sessionType).toUpperCase();
     if (!course || !institute || !sessionType) continue;
-    result.push({ course, institute, section: get(cols.section), session_type: sessionType, sessions: getNum(cols.sessions), students: getNum(cols.students), completion: getNum(cols.completion), avg_time: getNum(cols.avgTime), p80_time: getNum(cols.p80Time), batch: get(cols.batch), semester: get(cols.semester), report_date: get(cols.reportDate) });
+    result.push({ course, institute, section: get(cols.section), session_type: sessionType, sessions: getNum(cols.sessions), students: getNum(cols.students), completion: getNum(cols.completion), avg_time: getNum(cols.avgTime), p80_time: getNum(cols.p80Time), section_count: getNum(cols.sectionCount), batch: get(cols.batch), semester: get(cols.semester), report_date: get(cols.reportDate) });
   }
   return result;
 };

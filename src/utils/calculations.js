@@ -1,11 +1,24 @@
 import { SERIES_RANGES } from '../constants';
 import { getAllottedHours, getSeriesForAllottedHours, getSeriesForValue } from './semesterHelpers';
 
+const normalizeSection = (section) => String(section || '').trim();
+const isValidSection = (section) => {
+  const value = normalizeSection(section);
+  return value && value.toLowerCase() !== 'unknown';
+};
+
+const getRosterSectionCount = (rows) => {
+  const counts = rows
+    .map(d => Number(d.section_count ?? d.sectionCount ?? 0))
+    .filter(count => Number.isFinite(count) && count > 0);
+  return counts.length ? Math.max(...counts) : 0;
+};
+
 export const calcUnivAssessment = (assessmentData, univName) => {
   if (!assessmentData) return { avgScore: null, avgParticipation: null };
   const univData = assessmentData.filter(d => d.university === univName);
   if (!univData.length) return { avgScore: null, avgParticipation: null };
-  const sections = [...new Set(univData.map(d => d.section).filter(Boolean))];
+  const sections = [...new Set(univData.map(d => normalizeSection(d.section)).filter(isValidSection))];
   if (sections.length <= 1) {
     return { avgScore: univData.reduce((s, d) => s + d.avg_score, 0) / univData.length, avgParticipation: univData.reduce((s, d) => s + d.avg_participation, 0) / univData.length };
   }
@@ -24,7 +37,8 @@ export const calculateSeriesData = (data, assessmentData, analysisType = 'design
   const institutes = [...new Set(data.map(d => d.institute))];
   const univMetrics = institutes.map(inst => {
     const instData = data.filter(d => d.institute === inst);
-    const sections = [...new Set(instData.map(d => d.section).filter(Boolean))];
+    const sections = [...new Set(instData.map(d => normalizeSection(d.section)).filter(isValidSection))];
+    const rosterSectionCount = getRosterSectionCount(instData);
     const calcSectionMetric = (secData) => {
       const lec = secData.filter(d => d.session_type === 'LECTURE');
       const prac = secData.filter(d => d.session_type === 'PRACTICE');
@@ -62,7 +76,7 @@ export const calculateSeriesData = (data, assessmentData, analysisType = 'design
     } else {
       seriesName = getSeriesForValue(avg('totalSessions')).name;
     }
-    return { name: inst, sectionCount: sections.length || 1, avgSessions: avg('totalSessions'), avgClassSize: avg('classSize'), avgLectureCompletion: avg('lectureCompletion'), avgPracticeCompletion: avg('practiceCompletion'), avgExamCompletion: avg('examCompletion'), avgOverallCompletion: (avg('lectureCompletion') + avg('practiceCompletion') + avg('examCompletion')) / 3, avgWorkload: avg('avgTime'), avgP80Workload: avg('p80Time'), avgPracticeWorkload: avg('practiceAvgTime'), avgPracticeP80Workload: avg('practiceP80Time'), series: seriesName, allottedHours, avgAssessmentScore: avgScore, avgParticipation };
+    return { name: inst, sectionCount: rosterSectionCount || sections.length || 1, avgSessions: avg('totalSessions'), avgClassSize: avg('classSize'), avgLectureCompletion: avg('lectureCompletion'), avgPracticeCompletion: avg('practiceCompletion'), avgExamCompletion: avg('examCompletion'), avgOverallCompletion: (avg('lectureCompletion') + avg('practiceCompletion') + avg('examCompletion')) / 3, avgWorkload: avg('avgTime'), avgP80Workload: avg('p80Time'), avgPracticeWorkload: avg('practiceAvgTime'), avgPracticeP80Workload: avg('practiceP80Time'), series: seriesName, allottedHours, avgAssessmentScore: avgScore, avgParticipation };
   });
 
   const seriesData = {};

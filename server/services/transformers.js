@@ -13,6 +13,7 @@ export function transformSemesterRow(row) {
     completion:   parseFloat(String(row.average_of_pct_completed || row['average_of_%_completed'] || row.pct_completed || row.completion || 0).replace('%', '')),
     avg_time:     parseFloat(row.sum_of_avg_time_spent_to_complete || row.avg_time_spent_to_complete || row.avg_time_spent || row.avg_time || 0),
     p80_time:     parseFloat(row.sum_of_p80_time_to_completed || row.p80_time_to_completed || row.p80_time || 0),
+    section_count: parseFloat(row.section_count || row.sections_count || 0),
     batch:        String(row.batch || ''),
     semester:     String(row.semester || ''),
     report_date:  row.report_date ? formatDate(row.report_date) : '',

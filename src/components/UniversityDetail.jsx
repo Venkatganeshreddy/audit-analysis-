@@ -22,7 +22,12 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
   const [viewMode, setViewMode] = useState('course'); // 'course' or 'subject'
 
   const sections = useMemo(
-    () => [...new Set(data.filter(d => d.institute === selectedInstitute).map(d => d.section).filter(Boolean))].sort(),
+    () => [...new Set(
+      data
+        .filter(d => d.institute === selectedInstitute)
+        .map(d => String(d.section || '').trim())
+        .filter(section => section && section.toLowerCase() !== 'unknown')
+    )].sort(),
     [data, selectedInstitute]
   );
 

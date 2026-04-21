@@ -361,6 +361,13 @@ export async function fetchSemesterData(filters = {}) {
       FROM ${usersTable} u
       WHERE TRIM(COALESCE(u.institute_name, '')) != ''
       GROUP BY institute, section
+    ),
+    roster_counts AS (
+      SELECT
+        institute,
+        COUNT(DISTINCT IF(LOWER(section) != 'unknown', section, NULL)) AS section_count
+      FROM roster
+      GROUP BY institute
     )
     SELECT
       sc.course AS course,
@@ -378,6 +385,7 @@ export async function fetchSemesterData(filters = {}) {
       ) AS completion,
       0 AS avg_time,
       0 AS p80_time,
+      COALESCE(rc.section_count, 0) AS section_count,
       @selectedBatch AS batch,
       @selectedSemester AS semester,
       CAST(MAX(sc.report_date) AS STRING) AS report_date
@@ -385,7 +393,9 @@ export async function fetchSemesterData(filters = {}) {
     LEFT JOIN roster r
       ON r.institute = sc.institute
       AND r.section = sc.section
-    GROUP BY course, institute, section, session_type, students
+    LEFT JOIN roster_counts rc
+      ON rc.institute = sc.institute
+    GROUP BY course, institute, section, session_type, students, section_count
     HAVING sessions > 0
     ORDER BY institute, section, course
   `;
