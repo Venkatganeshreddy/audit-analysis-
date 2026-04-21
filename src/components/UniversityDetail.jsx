@@ -91,6 +91,16 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
     const exam = filtered.filter(d => d.session_type === 'EXAM');
     const sum = (a, k) => a.reduce((s, d) => s + (d[k] || 0), 0);
     const avg = (a, k) => a.length ? sum(a, k) / a.length : 0;
+    const rosterSize = selectedSection
+      ? Math.max(...filtered.map(d => d.students || 0), 0)
+      : [...filtered.reduce((sectionMap, row) => {
+        const section = String(row.section || '').trim();
+        if (section && section.toLowerCase() !== 'unknown') {
+          sectionMap.set(section, Math.max(sectionMap.get(section) || 0, row.students || 0));
+        }
+        return sectionMap;
+      }, new Map()).values()].reduce((total, students) => total + students, 0) || Math.max(...filtered.map(d => d.students || 0), 0);
+
     return {
       courses, courseCount: courses.length,
       courseGroups: displayGroups,
@@ -98,7 +108,7 @@ export default function UniversityDetail({ data, assessmentData, selectedInstitu
       practiceCount: sum(prac, 'sessions'),
       examCount: sum(exam, 'sessions'),
       totalSessions: sum(filtered, 'sessions'),
-      classSize: Math.max(...filtered.map(d => d.students), 0),
+      classSize: rosterSize,
       overallCompletion: avg(filtered, 'completion'),
       lectureCompletion: avg(lec, 'completion'),
       practiceCompletion: avg(prac, 'completion'),

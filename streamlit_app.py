@@ -1424,6 +1424,19 @@ def summarize_type(course_df: pd.DataFrame, session_type: str):
     }
 
 
+def get_roster_size_for_scope(data_df: pd.DataFrame, section: str):
+    if data_df.empty:
+        return 0
+    if section:
+        return float(data_df["students"].max())
+    scoped = data_df.copy()
+    scoped["section"] = scoped["section"].fillna("").astype(str).str.strip()
+    scoped = scoped[scoped["section"].str.lower() != "unknown"]
+    if scoped.empty:
+        return float(data_df["students"].max())
+    return float(scoped.groupby("section")["students"].max().sum())
+
+
 def build_university_metrics(data_df: pd.DataFrame, assessment_df: pd.DataFrame, institute: str, section: str, semester: str):
     filtered = data_df[data_df["institute"] == institute].copy()
     if section:
@@ -1475,7 +1488,7 @@ def build_university_metrics(data_df: pd.DataFrame, assessment_df: pd.DataFrame,
 
     return {
         "courseCount": len(course_records),
-        "classSize": float(filtered["students"].max()),
+        "classSize": get_roster_size_for_scope(filtered, section),
         "lectureCount": float(lecture_df["sessions"].sum()) if not lecture_df.empty else 0,
         "practiceCount": float(practice_df["sessions"].sum()) if not practice_df.empty else 0,
         "examCount": float(exam_df["sessions"].sum()) if not exam_df.empty else 0,
