@@ -899,6 +899,9 @@ def build_university_overview_rows(universities, semester: str, batch: str, prog
     overview_df["Allocated slots"] = overview_df["Net NIAT Executional Slots"]
     overview_df["Expected slots"] = overview_df["Expected Slots"]
     overview_df = overview_df.rename(columns={"University": "Universities"})
+    overview_df = overview_df[
+        overview_df["Universities"].astype(str).str.strip().str.casefold() != "aurora university"
+    ].reset_index(drop=True)
     return overview_df[
         [
             "Universities",
