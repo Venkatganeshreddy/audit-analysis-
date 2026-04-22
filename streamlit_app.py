@@ -802,6 +802,23 @@ def count_weekdays_between(start_iso: str, end_iso: str):
     return total
 
 
+def calculate_expected_slots_to_date(dates: dict | None, allotted_hours, execution_days):
+    if not dates or allotted_hours is None or not execution_days:
+        return None
+    start_date = datetime.strptime(dates["start"], "%Y-%m-%d").date()
+    end_date = datetime.strptime(dates["end"], "%Y-%m-%d").date()
+    today = datetime.now().date()
+    if today < start_date:
+        return 0
+    effective_date = min(today, end_date)
+    elapsed_weekdays = count_weekdays_between(dates["start"], effective_date.strftime("%Y-%m-%d"))
+    if elapsed_weekdays is None:
+        return None
+    elapsed_execution_days = min(float(elapsed_weekdays), float(execution_days))
+    slots_per_day = float(allotted_hours) / float(execution_days)
+    return min(float(allotted_hours), elapsed_execution_days * slots_per_day)
+
+
 def get_semester_config_value(name: str, semester: str, config_by_semester: dict):
     semester_values = config_by_semester.get(semester, {})
     if name in semester_values:
@@ -829,6 +846,7 @@ def build_university_timeline_rows(universities, semester: str, batch: str):
             execution_days = round(allotted_hours / 7)
         if execution_weeks is None and execution_days is not None:
             execution_weeks = round(execution_days / 6, 1)
+        expected_slots = calculate_expected_slots_to_date(dates, allotted_hours, execution_days)
         rows.append(
             {
                 "University": university_name,
@@ -839,6 +857,7 @@ def build_university_timeline_rows(universities, semester: str, batch: str):
                 "Total NIAT Slots": round(float(allotted_hours) + assessment_slots, 1) if allotted_hours is not None else None,
                 "NIAT Assessment Slots": assessment_slots,
                 "Net NIAT Executional Slots": round(float(allotted_hours), 1) if allotted_hours is not None else None,
+                "Expected Slots": round(float(expected_slots), 1) if expected_slots is not None else None,
                 "Total NIAT Executional Days": round(float(execution_days), 1) if execution_days is not None else None,
                 "Net NIAT No. of Weeks": round(float(execution_weeks), 1) if execution_weeks is not None else None,
             }
@@ -878,7 +897,7 @@ def build_university_overview_rows(universities, semester: str, batch: str, prog
         return timeline_df
     overview_df = timeline_df.merge(metric_rows, on="University", how="left").reset_index(drop=True)
     overview_df["Allocated slots"] = overview_df["Net NIAT Executional Slots"]
-    overview_df["Expected slots"] = pd.Series([pd.NA] * len(overview_df), dtype="Float64")
+    overview_df["Expected slots"] = overview_df["Expected Slots"]
     overview_df = overview_df.rename(columns={"University": "Universities"})
     return overview_df[
         [
@@ -2287,6 +2306,7 @@ def main():
                 "Total NIAT Slots": st.column_config.NumberColumn("Total NIAT Slots", format="%.1f"),
                 "NIAT Assessment Slots": st.column_config.NumberColumn("NIAT Assessment Slots", format="%.1f"),
                 "Net NIAT Executional Slots": st.column_config.NumberColumn("Net NIAT Executional Slots", format="%.1f"),
+                "Expected Slots": st.column_config.NumberColumn("Expected Slots", format="%.1f"),
                 "Total NIAT Executional Days": st.column_config.NumberColumn("Total NIAT Executional Days", format="%.1f"),
                 "Net NIAT No. of Weeks": st.column_config.NumberColumn("Net NIAT No. of Weeks", format="%.1f"),
             },
