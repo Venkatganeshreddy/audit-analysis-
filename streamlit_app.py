@@ -802,21 +802,26 @@ def count_weekdays_between(start_iso: str, end_iso: str):
     return total
 
 
-def calculate_expected_slots_to_date(dates: dict | None, allotted_hours, execution_days):
-    if not dates or allotted_hours is None or not execution_days:
+def calculate_expected_slots_to_date(dates: dict | None, allotted_hours):
+    if not dates or allotted_hours is None:
         return None
     start_date = datetime.strptime(dates["start"], "%Y-%m-%d").date()
     end_date = datetime.strptime(dates["end"], "%Y-%m-%d").date()
     today = datetime.now().date()
     if today < start_date:
         return 0
+    # Pace expected slots across the full semester window so the number only
+    # reaches the allotted total once the configured end date is reached.
+    total_working_days = count_weekdays_between(dates["start"], dates["end"])
+    if not total_working_days:
+        return None
     effective_date = min(today, end_date)
     elapsed_weekdays = count_weekdays_between(dates["start"], effective_date.strftime("%Y-%m-%d"))
     if elapsed_weekdays is None:
         return None
-    elapsed_execution_days = min(float(elapsed_weekdays), float(execution_days))
-    slots_per_day = float(allotted_hours) / float(execution_days)
-    return min(float(allotted_hours), elapsed_execution_days * slots_per_day)
+    elapsed_working_days = min(float(elapsed_weekdays), float(total_working_days))
+    slots_per_day = float(allotted_hours) / float(total_working_days)
+    return min(float(allotted_hours), elapsed_working_days * slots_per_day)
 
 
 def get_semester_config_value(name: str, semester: str, config_by_semester: dict):
@@ -846,7 +851,7 @@ def build_university_timeline_rows(universities, semester: str, batch: str):
             execution_days = round(allotted_hours / 7)
         if execution_weeks is None and execution_days is not None:
             execution_weeks = round(execution_days / 6, 1)
-        expected_slots = calculate_expected_slots_to_date(dates, allotted_hours, execution_days)
+        expected_slots = calculate_expected_slots_to_date(dates, allotted_hours)
         rows.append(
             {
                 "University": university_name,
