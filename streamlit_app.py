@@ -17,6 +17,7 @@ DEFAULT_ASSESSMENT_TOPIC_TABLE = "niat_learning_performance_semester_wise_topin_
 DEFAULT_USERS_TABLE = "niat_and_intensive_offline_users_details"
 DEFAULT_CONTENT_TABLE = "content_all_products_unit_wise_content_hierarchy_details"
 DEFAULT_SCHEDULE_TABLE = "niat_and_intensive_offline_section_wise_daily_learning_schedule_details"
+DEFAULT_PROGRESS_TABLE = "niat_learning_progress_course_wise_stats"
 
 SERIES_RANGES = [
     {"name": "300", "min": 0, "max": 350},
@@ -846,13 +847,19 @@ def build_university_timeline_rows(universities, semester: str, batch: str):
 
 
 
-def build_university_overview_rows(universities, semester: str, batch: str):
+def build_university_overview_rows(universities, semester: str, batch: str, progress_slots_df: pd.DataFrame | None = None):
     timeline_df = build_university_timeline_rows(universities, semester, batch)
+    progress_slots = {}
+    if progress_slots_df is not None and not progress_slots_df.empty:
+        progress_slots = {
+            row["institute"]: float(row["delivered_slots"])
+            for _, row in progress_slots_df.dropna(subset=["institute"]).iterrows()
+        }
     metric_rows = pd.DataFrame(
         [
             {
                 "University": item["name"],
-                "Slots actually delivered": round(item.get("avgLecturePracticeSessions", 0), 1),
+                "Slots actually delivered": round(progress_slots.get(item["name"], item.get("avgLecturePracticeSessions", 0)), 1),
                 "Lecture completion": round(item["avgLectureCompletion"], 1),
                 "Practice Completion": round(item["avgPracticeCompletion"], 1),
                 "Academic assessments": round(item["avgAcademicScore"] * 100, 1) if item.get("avgAcademicScore") is not None else None,
@@ -965,6 +972,18 @@ def format_table_ref(table_ref: str, default_table: str) -> str:
     return f"`{project_id}.{dataset}.{parts[0]}`"
 
 
+def resolve_table_parts(table_ref: str, default_table: str):
+    project_id = get_config("BQ_PROJECT_ID", DEFAULT_PROJECT_ID)
+    dataset = get_config("BQ_DATASET", DEFAULT_DATASET)
+    raw = table_ref.strip() if table_ref else default_table
+    parts = [part.strip("` ").strip() for part in raw.split(".") if part.strip("` ").strip()]
+    if len(parts) == 3:
+        return {"project": parts[0], "dataset": parts[1], "table": parts[2]}
+    if len(parts) == 2:
+        return {"project": project_id, "dataset": parts[0], "table": parts[1]}
+    return {"project": project_id, "dataset": dataset, "table": parts[0]}
+
+
 def get_table_refs():
     return {
         "semester": format_table_ref(get_config("BQ_SEMESTER_TABLE", DEFAULT_SEMESTER_TABLE), DEFAULT_SEMESTER_TABLE),
@@ -976,6 +995,7 @@ def get_table_refs():
         "users": format_table_ref(get_config("BQ_USERS_TABLE", DEFAULT_USERS_TABLE), DEFAULT_USERS_TABLE),
         "content": format_table_ref(get_config("BQ_CONTENT_TABLE", DEFAULT_CONTENT_TABLE), DEFAULT_CONTENT_TABLE),
         "schedule": format_table_ref(get_config("BQ_SCHEDULE_TABLE", DEFAULT_SCHEDULE_TABLE), DEFAULT_SCHEDULE_TABLE),
+        "progress": format_table_ref(get_config("BQ_PROGRESS_TABLE", DEFAULT_PROGRESS_TABLE), DEFAULT_PROGRESS_TABLE),
     }
 
 
@@ -984,6 +1004,31 @@ def run_query(sql: str) -> pd.DataFrame:
     client = get_bigquery_client()
     rows = client.query(sql).result()
     return rows.to_dataframe(create_bqstorage_client=False)
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def fetch_table_columns(table_ref: str, default_table: str) -> set[str]:
+    table_parts = resolve_table_parts(table_ref, default_table)
+    sql = f"""
+        SELECT LOWER(column_name) AS column_name
+        FROM `{table_parts["project"]}.{table_parts["dataset"]}.INFORMATION_SCHEMA.COLUMNS`
+        WHERE table_name = '{sql_escape(table_parts["table"])}'
+    """
+    rows = run_query(sql)
+    if rows.empty:
+        return set()
+    return set(rows["column_name"].dropna().astype(str).str.lower().tolist())
+
+
+def first_existing_column(columns: set[str], candidates: list[str]):
+    for candidate in candidates:
+        if candidate.lower() in columns:
+            return candidate
+    return None
+
+
+def bq_column(name: str) -> str:
+    return f"`{name.replace('`', '')}`"
 
 
 def build_content_subquery(content_table: str) -> str:
@@ -1106,6 +1151,58 @@ def fetch_semester_data(batch: str, semester: str) -> pd.DataFrame:
         GROUP BY course, institute, section, session_type, students, section_count
         HAVING sessions > 0
         ORDER BY institute, section, course
+    """
+    return run_query(sql)
+
+
+def fetch_progress_delivered_slots(batch: str, semester: str) -> pd.DataFrame:
+    refs = get_table_refs()
+    progress_table = get_config("BQ_PROGRESS_TABLE", DEFAULT_PROGRESS_TABLE)
+    columns = fetch_table_columns(progress_table, DEFAULT_PROGRESS_TABLE)
+    required_columns = {"session_type", "sessions_delivered"}
+    if not required_columns.issubset(columns):
+        return pd.DataFrame(columns=["institute", "delivered_slots"])
+
+    institute_col = first_existing_column(
+        columns,
+        ["institute_name", "institute", "university_name", "university", "college_name", "college"],
+    )
+    if not institute_col:
+        return pd.DataFrame(columns=["institute", "delivered_slots"])
+
+    institute_expr = f"CAST(p.{bq_column(institute_col)} AS STRING)"
+    where_clauses = [f"TRIM(COALESCE({institute_expr}, '')) != ''"]
+    date_col = first_existing_column(columns, ["session_date", "report_date", "date", "created_date", "updated_date"])
+    if date_col:
+        date_expr = f"DATE(p.{bq_column(date_col)})"
+        window_clause = get_semester_window_clause(semester, batch, institute_expr, date_expr)
+        if window_clause:
+            where_clauses.append(window_clause)
+
+    semester_col = first_existing_column(columns, ["semester", "semester_name", "term"])
+    if semester_col:
+        semester_values = {semester.lower()}
+        semester_number = re.search(r"\d+", semester)
+        if semester_number:
+            number = semester_number.group()
+            semester_values.update({number, f"sem {number}", f"semester {number}", f"semester_{number}"})
+        escaped_values = ", ".join(f"'{sql_escape(value)}'" for value in sorted(semester_values))
+        where_clauses.append(f"LOWER(CAST(p.{bq_column(semester_col)} AS STRING)) IN ({escaped_values})")
+
+    batch_col = first_existing_column(columns, ["batch_name", "batch", "cohort_name", "cohort"])
+    if should_apply_batch_filter(batch) and batch_col:
+        where_clauses.append(f"LOWER(CAST(p.{bq_column(batch_col)} AS STRING)) LIKE '%{sql_escape(batch.strip().lower())}%'")
+
+    sql = f"""
+        SELECT
+          {institute_expr} AS institute,
+          SUM(COALESCE(SAFE_CAST(p.{bq_column("sessions_delivered")} AS FLOAT64), 0)) AS delivered_slots
+        FROM {refs["progress"]} p
+        WHERE {' AND '.join(where_clauses)}
+          AND UPPER(CAST(p.{bq_column("session_type")} AS STRING)) IN ('LECTURE', 'PRACTICE')
+        GROUP BY institute
+        HAVING delivered_slots > 0
+        ORDER BY institute
     """
     return run_query(sql)
 
@@ -1816,13 +1913,16 @@ def main():
     if load_clicked or "semester_df" not in st.session_state or st.session_state.get("batch") != batch or st.session_state.get("semester") != semester:
         with st.spinner("Fetching data from BigQuery..."):
             semester_df = fetch_semester_data(batch, semester)
+            progress_slots_df = fetch_progress_delivered_slots(batch, semester)
             assessment_df = fetch_assessment_data(batch, semester)
             st.session_state["semester_df"] = semester_df
+            st.session_state["progress_slots_df"] = progress_slots_df
             st.session_state["assessment_df"] = assessment_df
             st.session_state["batch"] = batch
             st.session_state["semester"] = semester
 
     semester_df = st.session_state.get("semester_df", pd.DataFrame())
+    progress_slots_df = st.session_state.get("progress_slots_df", pd.DataFrame())
     assessment_df = st.session_state.get("assessment_df", pd.DataFrame())
 
     if semester_df.empty:
@@ -1999,7 +2099,7 @@ def main():
     dates = get_semester_dates_for_institute(selected_university, semester, batch)
 
     timeline_df = build_university_timeline_rows(all_universities, semester, batch)
-    overview_df = build_university_overview_rows(all_universities, semester, batch)
+    overview_df = build_university_overview_rows(all_universities, semester, batch, progress_slots_df)
     if analysis_type == "overview":
         current_view = st.session_state.get("current_view", "University Overview")
     else:
