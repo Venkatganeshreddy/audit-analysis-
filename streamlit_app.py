@@ -852,22 +852,36 @@ def build_university_overview_rows(universities, semester: str, batch: str):
         [
             {
                 "University": item["name"],
-                "Sections": item["sectionCount"],
-                "Allotted Hours": round(item["allottedHours"], 1) if item["allottedHours"] is not None else None,
-                "Delivered Slots": round(item["avgSessions"], 1),
-                "Avg Delivery %": round(item["avgOverallCompletion"], 1),
-                "Avg Score %": round(item["avgAssessmentScore"] * 100, 1) if item["avgAssessmentScore"] is not None else None,
-                "Skill Score %": round(item["avgSkillScore"] * 100, 1) if item.get("avgSkillScore") is not None else None,
-                "Skill Participation #": round(item["avgSkillParticipation"], 1) if item.get("avgSkillParticipation") is not None else None,
-                "Graded Score %": round(item["avgGradedScore"] * 100, 1) if item.get("avgGradedScore") is not None else None,
-                "Graded Participation #": round(item["avgGradedParticipation"], 1) if item.get("avgGradedParticipation") is not None else None,
+                "Slots actually delivered": round(item.get("avgLecturePracticeSessions", 0), 1),
+                "Lecture completion": round(item["avgLectureCompletion"], 1),
+                "Practice Completion": round(item["avgPracticeCompletion"], 1),
+                "Academic assessments": round(item["avgAcademicScore"] * 100, 1) if item.get("avgAcademicScore") is not None else None,
+                "skill assessments": round(item["avgSkillScore"] * 100, 1) if item.get("avgSkillScore") is not None else None,
             }
             for item in sorted(universities, key=lambda value: value["name"])
         ]
     )
     if metric_rows.empty:
         return timeline_df
-    return timeline_df.merge(metric_rows, on="University", how="left").reset_index(drop=True)
+    overview_df = timeline_df.merge(metric_rows, on="University", how="left").reset_index(drop=True)
+    overview_df["Allocated slots"] = overview_df["Net NIAT Executional Slots"]
+    overview_df["Expected slots"] = pd.Series([pd.NA] * len(overview_df), dtype="Float64")
+    overview_df = overview_df.rename(columns={"University": "Universities"})
+    return overview_df[
+        [
+            "Universities",
+            "Delivery Mode",
+            "Start Date",
+            "End Date",
+            "Allocated slots",
+            "Expected slots",
+            "Slots actually delivered",
+            "Lecture completion",
+            "Practice Completion",
+            "Academic assessments",
+            "skill assessments",
+        ]
+    ]
 
 
 def get_available_sections(data_df: pd.DataFrame, university_name: str):
@@ -1224,10 +1238,24 @@ def summarize_assessment_subset(assessment_df: pd.DataFrame, assessment_type: st
     }
 
 
+def summarize_academic_assessment_subset(assessment_df: pd.DataFrame):
+    if assessment_df.empty:
+        return {"score": None, "participation": None}
+    scoped_df = assessment_df[assessment_df["assessment_type"] != "Skill Assessment"]
+    if scoped_df.empty:
+        return {"score": None, "participation": None}
+    return {
+        "score": float(scoped_df["avg_score"].mean()),
+        "participation": float(scoped_df["avg_participation"].mean()),
+    }
+
+
 def calc_univ_assessment(assessment_df: pd.DataFrame, univ_name: str):
     empty_response = {
         "avgScore": None,
         "avgParticipation": None,
+        "avgAcademicScore": None,
+        "avgAcademicParticipation": None,
         "avgSkillScore": None,
         "avgSkillParticipation": None,
         "avgGradedScore": None,
@@ -1245,11 +1273,14 @@ def calc_univ_assessment(assessment_df: pd.DataFrame, univ_name: str):
     ]
     if len(sections) <= 1:
         overall = summarize_assessment_subset(univ_data)
+        academic = summarize_academic_assessment_subset(univ_data)
         skill = summarize_assessment_subset(univ_data, "Skill Assessment")
         graded = summarize_assessment_subset(univ_data, "Graded Assessment")
         return {
             "avgScore": overall["score"],
             "avgParticipation": overall["participation"],
+            "avgAcademicScore": academic["score"],
+            "avgAcademicParticipation": academic["participation"],
             "avgSkillScore": skill["score"],
             "avgSkillParticipation": skill["participation"],
             "avgGradedScore": graded["score"],
@@ -1265,12 +1296,15 @@ def calc_univ_assessment(assessment_df: pd.DataFrame, univ_name: str):
     for section in sections:
         section_data = univ_data[(univ_data["section"] == section) & (univ_data["course_code"].isin(common_courses))]
         overall = summarize_assessment_subset(section_data)
+        academic = summarize_academic_assessment_subset(section_data)
         skill = summarize_assessment_subset(section_data, "Skill Assessment")
         graded = summarize_assessment_subset(section_data, "Graded Assessment")
         section_avgs.append(
             {
                 "score": overall["score"],
                 "participation": overall["participation"],
+                "academic_score": academic["score"],
+                "academic_participation": academic["participation"],
                 "skill_score": skill["score"],
                 "skill_participation": skill["participation"],
                 "graded_score": graded["score"],
@@ -1285,6 +1319,8 @@ def calc_univ_assessment(assessment_df: pd.DataFrame, univ_name: str):
     return {
         "avgScore": average_metric("score"),
         "avgParticipation": average_metric("participation"),
+        "avgAcademicScore": average_metric("academic_score"),
+        "avgAcademicParticipation": average_metric("academic_participation"),
         "avgSkillScore": average_metric("skill_score"),
         "avgSkillParticipation": average_metric("skill_participation"),
         "avgGradedScore": average_metric("graded_score"),
@@ -1317,8 +1353,10 @@ def calculate_series_data(data_df: pd.DataFrame, assessment_df: pd.DataFrame, an
             lecture_sessions = float(lecture_df["sessions"].max()) if not lecture_df.empty else 0
             practice_sessions = float(practice_df["sessions"].max()) if not practice_df.empty else 0
             exam_sessions = float(exam_df["sessions"].max()) if not exam_df.empty else 0
+            lecture_practice_sessions = float(lecture_df["sessions"].sum()) + float(practice_df["sessions"].sum())
             return {
                 "totalSessions": lecture_sessions + practice_sessions + exam_sessions,
+                "lecturePracticeSessions": lecture_practice_sessions,
                 "classSize": float(section_df["students"].max()) if not section_df.empty else 0,
                 "lectureCompletion": float(lecture_df["completion"].mean()) if not lecture_df.empty else 0,
                 "practiceCompletion": float(practice_df["completion"].mean()) if not practice_df.empty else 0,
@@ -1343,6 +1381,7 @@ def calculate_series_data(data_df: pd.DataFrame, assessment_df: pd.DataFrame, an
                 "name": institute,
                 "sectionCount": roster_section_count or len(sections) or 1,
                 "avgSessions": average("totalSessions"),
+                "avgLecturePracticeSessions": average("lecturePracticeSessions"),
                 "avgClassSize": average("classSize"),
                 "avgLectureCompletion": average("lectureCompletion"),
                 "avgPracticeCompletion": average("practiceCompletion"),
@@ -1356,6 +1395,8 @@ def calculate_series_data(data_df: pd.DataFrame, assessment_df: pd.DataFrame, an
                 "allottedHours": allotted_hours,
                 "avgAssessmentScore": assessment["avgScore"],
                 "avgParticipation": assessment["avgParticipation"],
+                "avgAcademicScore": assessment["avgAcademicScore"],
+                "avgAcademicParticipation": assessment["avgAcademicParticipation"],
                 "avgSkillScore": assessment["avgSkillScore"],
                 "avgSkillParticipation": assessment["avgSkillParticipation"],
                 "avgGradedScore": assessment["avgGradedScore"],
@@ -1370,6 +1411,7 @@ def calculate_series_data(data_df: pd.DataFrame, assessment_df: pd.DataFrame, an
             series_data[series["name"]] = {
                 "universities": [],
                 "avgSessions": 0,
+                "avgLecturePracticeSessions": 0,
                 "avgClassSize": 0,
                 "avgLectureCompletion": 0,
                 "avgPracticeCompletion": 0,
@@ -1378,6 +1420,8 @@ def calculate_series_data(data_df: pd.DataFrame, assessment_df: pd.DataFrame, an
                 "totalStudents": 0,
                 "avgAssessmentScore": None,
                 "avgParticipation": None,
+                "avgAcademicScore": None,
+                "avgAcademicParticipation": None,
                 "avgSkillScore": None,
                 "avgSkillParticipation": None,
                 "avgGradedScore": None,
@@ -1387,6 +1431,8 @@ def calculate_series_data(data_df: pd.DataFrame, assessment_df: pd.DataFrame, an
             continue
         average = lambda key: sum(item[key] for item in universities) / len(universities)
         with_score = [item for item in universities if item["avgAssessmentScore"] is not None]
+        with_academic_score = [item for item in universities if item["avgAcademicScore"] is not None]
+        with_academic_participation = [item for item in universities if item["avgAcademicParticipation"] is not None]
         with_skill_score = [item for item in universities if item["avgSkillScore"] is not None]
         with_skill_participation = [item for item in universities if item["avgSkillParticipation"] is not None]
         with_graded_score = [item for item in universities if item["avgGradedScore"] is not None]
@@ -1395,6 +1441,7 @@ def calculate_series_data(data_df: pd.DataFrame, assessment_df: pd.DataFrame, an
         series_data[series["name"]] = {
             "universities": universities,
             "avgSessions": average("avgSessions"),
+            "avgLecturePracticeSessions": average("avgLecturePracticeSessions"),
             "avgClassSize": average("avgClassSize"),
             "avgLectureCompletion": average("avgLectureCompletion"),
             "avgPracticeCompletion": average("avgPracticeCompletion"),
@@ -1403,6 +1450,8 @@ def calculate_series_data(data_df: pd.DataFrame, assessment_df: pd.DataFrame, an
             "totalStudents": sum(round(item["avgClassSize"] * item["sectionCount"]) for item in universities),
             "avgAssessmentScore": sum(item["avgAssessmentScore"] for item in with_score) / len(with_score) if with_score else None,
             "avgParticipation": sum(item["avgParticipation"] for item in with_score) / len(with_score) if with_score else None,
+            "avgAcademicScore": sum(item["avgAcademicScore"] for item in with_academic_score) / len(with_academic_score) if with_academic_score else None,
+            "avgAcademicParticipation": sum(item["avgAcademicParticipation"] for item in with_academic_participation) / len(with_academic_participation) if with_academic_participation else None,
             "avgSkillScore": sum(item["avgSkillScore"] for item in with_skill_score) / len(with_skill_score) if with_skill_score else None,
             "avgSkillParticipation": sum(item["avgSkillParticipation"] for item in with_skill_participation) / len(with_skill_participation) if with_skill_participation else None,
             "avgGradedScore": sum(item["avgGradedScore"] for item in with_graded_score) / len(with_graded_score) if with_graded_score else None,
@@ -2000,25 +2049,17 @@ def main():
                 on_select="rerun",
                 selection_mode="single-row",
                 column_config={
-                    "University": st.column_config.TextColumn("University"),
+                    "Universities": st.column_config.TextColumn("Universities"),
                     "Delivery Mode": st.column_config.TextColumn("Delivery Mode"),
                     "Start Date": st.column_config.TextColumn("Start Date"),
                     "End Date": st.column_config.TextColumn("End Date"),
-                    "Working Days": st.column_config.NumberColumn("Working Days", format="%.1f"),
-                    "Total NIAT Slots": st.column_config.NumberColumn("Total NIAT Slots", format="%.1f"),
-                    "NIAT Assessment Slots": st.column_config.NumberColumn("NIAT Assessment Slots", format="%.1f"),
-                    "Net NIAT Executional Slots": st.column_config.NumberColumn("Net NIAT Executional Slots", format="%.1f"),
-                    "Total NIAT Executional Days": st.column_config.NumberColumn("Total NIAT Executional Days", format="%.1f"),
-                    "Net NIAT No. of Weeks": st.column_config.NumberColumn("Net NIAT No. of Weeks", format="%.1f"),
-                    "Sections": st.column_config.NumberColumn("Sections", format="%d"),
-                    "Allotted Hours": st.column_config.NumberColumn("Allotted Hours", format="%.1f"),
-                    "Delivered Slots": st.column_config.NumberColumn("Delivered Slots", format="%.1f"),
-                    "Avg Delivery %": st.column_config.NumberColumn("Avg Delivery %", format="%.1f%%"),
-                    "Avg Score %": st.column_config.NumberColumn("Avg Score %", format="%.1f%%"),
-                    "Skill Score %": st.column_config.NumberColumn("Skill Score %", format="%.1f%%"),
-                    "Skill Participation #": st.column_config.NumberColumn("Skill Participation #", format="%.1f"),
-                    "Graded Score %": st.column_config.NumberColumn("Graded Score %", format="%.1f%%"),
-                    "Graded Participation #": st.column_config.NumberColumn("Graded Participation #", format="%.1f"),
+                    "Allocated slots": st.column_config.NumberColumn("Allocated slots", format="%.1f"),
+                    "Expected slots": st.column_config.NumberColumn("Expected slots", format="%.1f"),
+                    "Slots actually delivered": st.column_config.NumberColumn("Slots actually delivered", format="%.1f"),
+                    "Lecture completion": st.column_config.NumberColumn("Lecture completion", format="%.1f%%"),
+                    "Practice Completion": st.column_config.NumberColumn("Practice Completion", format="%.1f%%"),
+                    "Academic assessments": st.column_config.NumberColumn("Academic assessments", format="%.1f%%"),
+                    "skill assessments": st.column_config.NumberColumn("skill assessments", format="%.1f%%"),
                 },
             )
             selected_rows = []
@@ -2029,7 +2070,7 @@ def main():
                 elif isinstance(overview_selection, dict):
                     selected_rows = overview_selection.get("selection", {}).get("rows", []) or []
             if selected_rows:
-                clicked_university = filtered_overview_df.iloc[selected_rows[0]]["University"]
+                clicked_university = filtered_overview_df.iloc[selected_rows[0]]["Universities"]
                 queue_course_breakdown_navigation(clicked_university)
                 st.session_state["overview_table_nonce"] = st.session_state.get("overview_table_nonce", 0) + 1
                 st.rerun()
