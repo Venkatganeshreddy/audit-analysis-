@@ -859,7 +859,13 @@ def build_university_overview_rows(universities, semester: str, batch: str, prog
         [
             {
                 "University": item["name"],
-                "Slots actually delivered": round(progress_slots.get(item["name"], item.get("avgLecturePracticeSessions", 0)), 1),
+                "Slots actually delivered": round(
+                    min(
+                        progress_slots.get(item["name"], item.get("avgLecturePracticeSessions", 0)),
+                        item["allottedHours"] if item.get("allottedHours") is not None else progress_slots.get(item["name"], item.get("avgLecturePracticeSessions", 0)),
+                    ),
+                    1,
+                ),
                 "Lecture completion": round(item["avgLectureCompletion"], 1),
                 "Practice Completion": round(item["avgPracticeCompletion"], 1),
                 "Academic assessments": round(item["avgAcademicScore"] * 100, 1) if item.get("avgAcademicScore") is not None else None,
@@ -1171,6 +1177,8 @@ def fetch_progress_delivered_slots(batch: str, semester: str) -> pd.DataFrame:
         return pd.DataFrame(columns=["institute", "delivered_slots"])
 
     institute_expr = f"CAST(p.{bq_column(institute_col)} AS STRING)"
+    section_col = first_existing_column(columns, ["section_name", "section", "student_group", "student_group_name", "group_name"])
+    section_expr = f"CAST(p.{bq_column(section_col)} AS STRING)" if section_col else "'All Sections'"
     where_clauses = [f"TRIM(COALESCE({institute_expr}, '')) != ''"]
     date_col = first_existing_column(columns, ["session_date", "report_date", "date", "created_date", "updated_date"])
     if date_col:
@@ -1194,12 +1202,20 @@ def fetch_progress_delivered_slots(batch: str, semester: str) -> pd.DataFrame:
         where_clauses.append(f"LOWER(CAST(p.{bq_column(batch_col)} AS STRING)) LIKE '%{sql_escape(batch.strip().lower())}%'")
 
     sql = f"""
+        WITH section_slots AS (
+          SELECT
+            {institute_expr} AS institute,
+            COALESCE(NULLIF(TRIM({section_expr}), ''), 'All Sections') AS section,
+            SUM(COALESCE(SAFE_CAST(p.{bq_column("sessions_delivered")} AS FLOAT64), 0)) AS section_delivered_slots
+          FROM {refs["progress"]} p
+          WHERE {' AND '.join(where_clauses)}
+            AND UPPER(CAST(p.{bq_column("session_type")} AS STRING)) IN ('LECTURE', 'PRACTICE')
+          GROUP BY institute, section
+        )
         SELECT
-          {institute_expr} AS institute,
-          SUM(COALESCE(SAFE_CAST(p.{bq_column("sessions_delivered")} AS FLOAT64), 0)) AS delivered_slots
-        FROM {refs["progress"]} p
-        WHERE {' AND '.join(where_clauses)}
-          AND UPPER(CAST(p.{bq_column("session_type")} AS STRING)) IN ('LECTURE', 'PRACTICE')
+          institute,
+          AVG(section_delivered_slots) AS delivered_slots
+        FROM section_slots
         GROUP BY institute
         HAVING delivered_slots > 0
         ORDER BY institute
