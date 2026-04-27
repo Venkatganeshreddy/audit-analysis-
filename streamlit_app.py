@@ -786,6 +786,10 @@ def format_display_date(value: str) -> str:
     return datetime.strptime(iso_value, "%Y-%m-%d").strftime("%d/%m/%Y")
 
 
+def format_today_display_date() -> str:
+    return datetime.now().strftime("%d/%m/%Y")
+
+
 def count_weekdays_between(start_iso: str, end_iso: str):
     if not start_iso or not end_iso:
         return None
@@ -942,8 +946,9 @@ def build_university_overview_rows(universities, semester: str, batch: str, prog
                     else item["avgPracticeCompletion"],
                     1,
                 ),
-                "Academic assessments pass #": round(item["avgAcademicPassCount"], 1) if item.get("avgAcademicPassCount") is not None else None,
-                "Skill assessments pass #": round(item["avgSkillPassCount"], 1) if item.get("avgSkillPassCount") is not None else None,
+                "Academic assessments %": round(item["avgGradedScore"] * 100, 1) if item.get("avgGradedScore") is not None else None,
+                "Non-skilled assessments pass #": round(item["avgAcademicPassCount"], 1) if item.get("avgAcademicPassCount") is not None else None,
+                "Skill assessments %": round(item["avgSkillScore"] * 100, 1) if item.get("avgSkillScore") is not None else None,
             }
             for item in sorted(universities, key=lambda value: value["name"])
         ]
@@ -955,7 +960,7 @@ def build_university_overview_rows(universities, semester: str, batch: str, prog
     overview_df["Expected slots till date"] = overview_df["Expected Slots"]
     overview_df["Deviation"] = (
         overview_df["Actual slots delivered till date"] - overview_df["Expected slots till date"]
-    ).round(1)
+    ).abs().round(1)
     overview_df = overview_df.rename(columns={"University": "Universities"})
     overview_df = overview_df[
         overview_df["Universities"].astype(str).str.strip().str.casefold() != "aurora university"
@@ -972,8 +977,9 @@ def build_university_overview_rows(universities, semester: str, batch: str, prog
             "Deviation",
             "Session completion %",
             "Practice completion %",
-            "Academic assessments pass #",
-            "Skill assessments pass #",
+            "Academic assessments %",
+            "Non-skilled assessments pass #",
+            "Skill assessments %",
         ]
     ]
 
@@ -1283,6 +1289,32 @@ def fetch_progress_delivered_slots(batch: str, semester: str) -> pd.DataFrame:
     if should_apply_batch_filter(batch) and batch_col:
         where_clauses.append(f"LOWER(CAST(p.{bq_column(batch_col)} AS STRING)) LIKE '%{sql_escape(batch.strip().lower())}%'")
 
+    completion_section_sql = ""
+    completion_aggregate_sql = """
+          CAST(NULL AS FLOAT64) AS lecture_completion_pct,
+          CAST(NULL AS FLOAT64) AS practice_completion_pct
+    """
+    if completion_col:
+        completion_section_sql = f""",
+            AVG(
+              CASE
+                WHEN UPPER(CAST(p.{bq_column("session_type")} AS STRING)) = 'LECTURE'
+                  THEN SAFE_CAST(p.{bq_column(completion_col)} AS FLOAT64)
+                ELSE NULL
+              END
+            ) AS section_lecture_completion_pct,
+            AVG(
+              CASE
+                WHEN UPPER(CAST(p.{bq_column("session_type")} AS STRING)) = 'PRACTICE'
+                  THEN SAFE_CAST(p.{bq_column(completion_col)} AS FLOAT64)
+                ELSE NULL
+              END
+            ) AS section_practice_completion_pct"""
+        completion_aggregate_sql = """
+          AVG(section_lecture_completion_pct) AS lecture_completion_pct,
+          AVG(section_practice_completion_pct) AS practice_completion_pct
+        """
+
     sql = f"""
         WITH section_slots AS (
           SELECT
@@ -1302,21 +1334,7 @@ def fetch_progress_delivered_slots(batch: str, semester: str) -> pd.DataFrame:
                   THEN COALESCE(SAFE_CAST(p.{bq_column("sessions_delivered")} AS FLOAT64), 0)
                 ELSE 0
               END
-            ) AS section_practice_delivered_slots,
-            AVG(
-              CASE
-                WHEN UPPER(CAST(p.{bq_column("session_type")} AS STRING)) = 'LECTURE'
-                  THEN SAFE_CAST(p.{bq_column(completion_col)} AS FLOAT64)
-                ELSE NULL
-              END
-            ) AS section_lecture_completion_pct,
-            AVG(
-              CASE
-                WHEN UPPER(CAST(p.{bq_column("session_type")} AS STRING)) = 'PRACTICE'
-                  THEN SAFE_CAST(p.{bq_column(completion_col)} AS FLOAT64)
-                ELSE NULL
-              END
-            ) AS section_practice_completion_pct
+            ) AS section_practice_delivered_slots{completion_section_sql}
           FROM {refs["progress"]} p
           WHERE {' AND '.join(where_clauses)}
             AND UPPER(CAST(p.{bq_column("session_type")} AS STRING)) IN ('LECTURE', 'PRACTICE')
@@ -1327,21 +1345,12 @@ def fetch_progress_delivered_slots(batch: str, semester: str) -> pd.DataFrame:
           AVG(section_delivered_slots) AS delivered_slots,
           AVG(section_lecture_delivered_slots) AS lecture_delivered_slots,
           AVG(section_practice_delivered_slots) AS practice_delivered_slots,
-          AVG(section_lecture_completion_pct) AS lecture_completion_pct,
-          AVG(section_practice_completion_pct) AS practice_completion_pct
+{completion_aggregate_sql}
         FROM section_slots
         GROUP BY institute
         HAVING delivered_slots > 0
         ORDER BY institute
     """
-    if completion_col is None:
-        return run_query(sql.replace(
-            f",\n            AVG(\n              CASE\n                WHEN UPPER(CAST(p.{bq_column('session_type')} AS STRING)) = 'LECTURE'\n                  THEN SAFE_CAST(p.{bq_column('completed_users_percentage')} AS FLOAT64)\n                ELSE NULL\n              END\n            ) AS section_lecture_completion_pct,\n            AVG(\n              CASE\n                WHEN UPPER(CAST(p.{bq_column('session_type')} AS STRING)) = 'PRACTICE'\n                  THEN SAFE_CAST(p.{bq_column('completed_users_percentage')} AS FLOAT64)\n                ELSE NULL\n              END\n            ) AS section_practice_completion_pct",
-            ""
-        ).replace(
-            ",\n          AVG(section_lecture_completion_pct) AS lecture_completion_pct,\n          AVG(section_practice_completion_pct) AS practice_completion_pct",
-            ",\n          CAST(NULL AS FLOAT64) AS lecture_completion_pct,\n          CAST(NULL AS FLOAT64) AS practice_completion_pct"
-        ))
     return run_query(sql)
 
 
@@ -2287,6 +2296,7 @@ def main():
 
     if analysis_type == "overview" and current_view == "University Overview":
         render_section_header("University overview", "Filter by delivery mode and click a university row to open its course breakdown.")
+        st.caption(f"Expected slots till date is calculated as of {format_today_display_date()}.")
         delivery_mode_map = {
             "All": None,
             "Full": "Full Delivery",
@@ -2334,8 +2344,9 @@ def main():
                     "Deviation": st.column_config.NumberColumn("Deviation", format="%.1f"),
                     "Session completion %": st.column_config.NumberColumn("Session completion %", format="%.1f%%"),
                     "Practice completion %": st.column_config.NumberColumn("Practice completion %", format="%.1f%%"),
-                    "Academic assessments pass #": st.column_config.NumberColumn("Academic assessments pass #", format="%.1f"),
-                    "Skill assessments pass #": st.column_config.NumberColumn("Skill assessments pass #", format="%.1f"),
+                    "Academic assessments %": st.column_config.NumberColumn("Academic assessments %", format="%.1f%%"),
+                    "Non-skilled assessments pass #": st.column_config.NumberColumn("Non-skilled assessments pass #", format="%.1f"),
+                    "Skill assessments %": st.column_config.NumberColumn("Skill assessments %", format="%.1f%%"),
                 },
             )
             selected_rows = []
