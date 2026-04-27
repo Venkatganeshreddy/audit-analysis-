@@ -977,9 +977,9 @@ def build_university_overview_rows(universities, semester: str, batch: str, prog
             "Deviation",
             "Session completion %",
             "Practice completion %",
-            "Academic assessments %",
             "Non-skilled assessments pass #",
             "Skill assessments %",
+            "Academic assessments %",
         ]
     ]
 
@@ -2344,9 +2344,9 @@ def main():
                     "Deviation": st.column_config.NumberColumn("Deviation", format="%.1f"),
                     "Session completion %": st.column_config.NumberColumn("Session completion %", format="%.1f%%"),
                     "Practice completion %": st.column_config.NumberColumn("Practice completion %", format="%.1f%%"),
-                    "Academic assessments %": st.column_config.NumberColumn("Academic assessments %", format="%.1f%%"),
                     "Non-skilled assessments pass #": st.column_config.NumberColumn("Non-skilled assessments pass #", format="%.1f"),
                     "Skill assessments %": st.column_config.NumberColumn("Skill assessments %", format="%.1f%%"),
+                    "Academic assessments %": st.column_config.NumberColumn("Academic assessments %", format="%.1f%%"),
                 },
             )
             selected_rows = []
