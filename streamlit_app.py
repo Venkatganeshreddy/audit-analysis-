@@ -824,6 +824,30 @@ def calculate_expected_slots_to_date(dates: dict | None, allotted_hours):
     return min(float(allotted_hours), elapsed_working_days * slots_per_day)
 
 
+def calculate_completion_from_actual(actual_sessions, scheduled_sessions):
+    if actual_sessions is None or scheduled_sessions is None:
+        return None
+    if float(scheduled_sessions) <= 0:
+        return None
+    return min(100.0, (float(actual_sessions) / float(scheduled_sessions)) * 100.0)
+
+
+def estimate_scheduled_sessions(session_df: pd.DataFrame):
+    if session_df.empty:
+        return 0.0
+    scheduled_total = 0.0
+    for _, row in session_df.iterrows():
+        completed_sessions = pd.to_numeric(row.get("sessions"), errors="coerce")
+        completion_percent = pd.to_numeric(row.get("completion"), errors="coerce")
+        if pd.isna(completed_sessions) or float(completed_sessions) <= 0:
+            continue
+        if pd.isna(completion_percent) or float(completion_percent) <= 0:
+            scheduled_total += float(completed_sessions)
+            continue
+        scheduled_total += float(completed_sessions) / (float(completion_percent) / 100.0)
+    return scheduled_total
+
+
 def get_semester_config_value(name: str, semester: str, config_by_semester: dict):
     semester_values = config_by_semester.get(semester, {})
     if name in semester_values:
@@ -876,24 +900,50 @@ def build_university_overview_rows(universities, semester: str, batch: str, prog
     progress_slots = {}
     if progress_slots_df is not None and not progress_slots_df.empty:
         progress_slots = {
-            row["institute"]: float(row["delivered_slots"])
+            row["institute"]: {
+                "delivered_slots": float(row["delivered_slots"]) if pd.notna(row.get("delivered_slots")) else None,
+                "lecture_delivered_slots": float(row["lecture_delivered_slots"]) if pd.notna(row.get("lecture_delivered_slots")) else None,
+                "practice_delivered_slots": float(row["practice_delivered_slots"]) if pd.notna(row.get("practice_delivered_slots")) else None,
+                "lecture_completion_pct": float(row["lecture_completion_pct"]) if pd.notna(row.get("lecture_completion_pct")) else None,
+                "practice_completion_pct": float(row["practice_completion_pct"]) if pd.notna(row.get("practice_completion_pct")) else None,
+            }
             for _, row in progress_slots_df.dropna(subset=["institute"]).iterrows()
         }
     metric_rows = pd.DataFrame(
         [
             {
                 "University": item["name"],
-                "Slots actually delivered": round(
+                "Actual slots delivered till date": round(
                     min(
-                        progress_slots.get(item["name"], item.get("avgLecturePracticeSessions", 0)),
-                        item["allottedHours"] if item.get("allottedHours") is not None else progress_slots.get(item["name"], item.get("avgLecturePracticeSessions", 0)),
+                        (
+                            progress_slots.get(item["name"], {}).get("delivered_slots")
+                            if item["name"] in progress_slots
+                            else item.get("avgLecturePracticeSessions", 0)
+                        ),
+                        item["allottedHours"]
+                        if item.get("allottedHours") is not None
+                        else (
+                            progress_slots.get(item["name"], {}).get("delivered_slots")
+                            if item["name"] in progress_slots
+                            else item.get("avgLecturePracticeSessions", 0)
+                        ),
                     ),
                     1,
                 ),
-                "Lecture completion": round(item["avgLectureCompletion"], 1),
-                "Practice Completion": round(item["avgPracticeCompletion"], 1),
-                "Academic assessments": round(item["avgAcademicScore"] * 100, 1) if item.get("avgAcademicScore") is not None else None,
-                "skill assessments": round(item["avgSkillScore"] * 100, 1) if item.get("avgSkillScore") is not None else None,
+                "Session completion %": round(
+                    progress_slots.get(item["name"], {}).get("lecture_completion_pct")
+                    if progress_slots.get(item["name"], {}).get("lecture_completion_pct") is not None
+                    else item["avgLectureCompletion"],
+                    1,
+                ),
+                "Practice completion %": round(
+                    progress_slots.get(item["name"], {}).get("practice_completion_pct")
+                    if progress_slots.get(item["name"], {}).get("practice_completion_pct") is not None
+                    else item["avgPracticeCompletion"],
+                    1,
+                ),
+                "Academic assessments pass #": round(item["avgAcademicPassCount"], 1) if item.get("avgAcademicPassCount") is not None else None,
+                "Skill assessments pass #": round(item["avgSkillPassCount"], 1) if item.get("avgSkillPassCount") is not None else None,
             }
             for item in sorted(universities, key=lambda value: value["name"])
         ]
@@ -901,8 +951,11 @@ def build_university_overview_rows(universities, semester: str, batch: str, prog
     if metric_rows.empty:
         return timeline_df
     overview_df = timeline_df.merge(metric_rows, on="University", how="left").reset_index(drop=True)
-    overview_df["Allocated slots"] = overview_df["Net NIAT Executional Slots"]
-    overview_df["Expected slots"] = overview_df["Expected Slots"]
+    overview_df["Expected slots"] = overview_df["Net NIAT Executional Slots"]
+    overview_df["Expected slots till date"] = overview_df["Expected Slots"]
+    overview_df["Deviation"] = (
+        overview_df["Actual slots delivered till date"] - overview_df["Expected slots till date"]
+    ).round(1)
     overview_df = overview_df.rename(columns={"University": "Universities"})
     overview_df = overview_df[
         overview_df["Universities"].astype(str).str.strip().str.casefold() != "aurora university"
@@ -913,13 +966,14 @@ def build_university_overview_rows(universities, semester: str, batch: str, prog
             "Delivery Mode",
             "Start Date",
             "End Date",
-            "Allocated slots",
             "Expected slots",
-            "Slots actually delivered",
-            "Lecture completion",
-            "Practice Completion",
-            "Academic assessments",
-            "skill assessments",
+            "Expected slots till date",
+            "Actual slots delivered till date",
+            "Deviation",
+            "Session completion %",
+            "Practice completion %",
+            "Academic assessments pass #",
+            "Skill assessments pass #",
         ]
     ]
 
@@ -1194,14 +1248,14 @@ def fetch_progress_delivered_slots(batch: str, semester: str) -> pd.DataFrame:
     columns = fetch_table_columns(progress_table, DEFAULT_PROGRESS_TABLE)
     required_columns = {"session_type", "sessions_delivered"}
     if not required_columns.issubset(columns):
-        return pd.DataFrame(columns=["institute", "delivered_slots"])
+        return pd.DataFrame(columns=["institute", "delivered_slots", "lecture_delivered_slots", "practice_delivered_slots", "lecture_completion_pct", "practice_completion_pct"])
 
     institute_col = first_existing_column(
         columns,
         ["institute_name", "institute", "university_name", "university", "college_name", "college"],
     )
     if not institute_col:
-        return pd.DataFrame(columns=["institute", "delivered_slots"])
+        return pd.DataFrame(columns=["institute", "delivered_slots", "lecture_delivered_slots", "practice_delivered_slots", "lecture_completion_pct", "practice_completion_pct"])
 
     institute_expr = f"CAST(p.{bq_column(institute_col)} AS STRING)"
     section_col = first_existing_column(columns, ["section_name", "section", "student_group", "student_group_name", "group_name"])
@@ -1215,6 +1269,7 @@ def fetch_progress_delivered_slots(batch: str, semester: str) -> pd.DataFrame:
             where_clauses.append(window_clause)
 
     semester_col = first_existing_column(columns, ["semester", "semester_name", "term"])
+    completion_col = first_existing_column(columns, ["completed_users_percentage", "completion_percentage", "completed_percentage", "completion_pct"])
     if semester_col:
         semester_values = {semester.lower()}
         semester_number = re.search(r"\d+", semester)
@@ -1233,7 +1288,35 @@ def fetch_progress_delivered_slots(batch: str, semester: str) -> pd.DataFrame:
           SELECT
             {institute_expr} AS institute,
             COALESCE(NULLIF(TRIM({section_expr}), ''), 'All Sections') AS section,
-            SUM(COALESCE(SAFE_CAST(p.{bq_column("sessions_delivered")} AS FLOAT64), 0)) AS section_delivered_slots
+            SUM(COALESCE(SAFE_CAST(p.{bq_column("sessions_delivered")} AS FLOAT64), 0)) AS section_delivered_slots,
+            SUM(
+              CASE
+                WHEN UPPER(CAST(p.{bq_column("session_type")} AS STRING)) = 'LECTURE'
+                  THEN COALESCE(SAFE_CAST(p.{bq_column("sessions_delivered")} AS FLOAT64), 0)
+                ELSE 0
+              END
+            ) AS section_lecture_delivered_slots,
+            SUM(
+              CASE
+                WHEN UPPER(CAST(p.{bq_column("session_type")} AS STRING)) = 'PRACTICE'
+                  THEN COALESCE(SAFE_CAST(p.{bq_column("sessions_delivered")} AS FLOAT64), 0)
+                ELSE 0
+              END
+            ) AS section_practice_delivered_slots,
+            AVG(
+              CASE
+                WHEN UPPER(CAST(p.{bq_column("session_type")} AS STRING)) = 'LECTURE'
+                  THEN SAFE_CAST(p.{bq_column(completion_col)} AS FLOAT64)
+                ELSE NULL
+              END
+            ) AS section_lecture_completion_pct,
+            AVG(
+              CASE
+                WHEN UPPER(CAST(p.{bq_column("session_type")} AS STRING)) = 'PRACTICE'
+                  THEN SAFE_CAST(p.{bq_column(completion_col)} AS FLOAT64)
+                ELSE NULL
+              END
+            ) AS section_practice_completion_pct
           FROM {refs["progress"]} p
           WHERE {' AND '.join(where_clauses)}
             AND UPPER(CAST(p.{bq_column("session_type")} AS STRING)) IN ('LECTURE', 'PRACTICE')
@@ -1241,12 +1324,24 @@ def fetch_progress_delivered_slots(batch: str, semester: str) -> pd.DataFrame:
         )
         SELECT
           institute,
-          AVG(section_delivered_slots) AS delivered_slots
+          AVG(section_delivered_slots) AS delivered_slots,
+          AVG(section_lecture_delivered_slots) AS lecture_delivered_slots,
+          AVG(section_practice_delivered_slots) AS practice_delivered_slots,
+          AVG(section_lecture_completion_pct) AS lecture_completion_pct,
+          AVG(section_practice_completion_pct) AS practice_completion_pct
         FROM section_slots
         GROUP BY institute
         HAVING delivered_slots > 0
         ORDER BY institute
     """
+    if completion_col is None:
+        return run_query(sql.replace(
+            f",\n            AVG(\n              CASE\n                WHEN UPPER(CAST(p.{bq_column('session_type')} AS STRING)) = 'LECTURE'\n                  THEN SAFE_CAST(p.{bq_column('completed_users_percentage')} AS FLOAT64)\n                ELSE NULL\n              END\n            ) AS section_lecture_completion_pct,\n            AVG(\n              CASE\n                WHEN UPPER(CAST(p.{bq_column('session_type')} AS STRING)) = 'PRACTICE'\n                  THEN SAFE_CAST(p.{bq_column('completed_users_percentage')} AS FLOAT64)\n                ELSE NULL\n              END\n            ) AS section_practice_completion_pct",
+            ""
+        ).replace(
+            ",\n          AVG(section_lecture_completion_pct) AS lecture_completion_pct,\n          AVG(section_practice_completion_pct) AS practice_completion_pct",
+            ",\n          CAST(NULL AS FLOAT64) AS lecture_completion_pct,\n          CAST(NULL AS FLOAT64) AS practice_completion_pct"
+        ))
     return run_query(sql)
 
 
@@ -1353,6 +1448,13 @@ def fetch_assessment_data(batch: str, semester: str) -> pd.DataFrame:
           course_code,
           assessment_type,
           COUNT(DISTINCT IF(COALESCE(user_score, actual_score) IS NOT NULL, user_id, NULL)) AS avg_participation,
+          COUNT(
+            DISTINCT IF(
+              COALESCE(SAFE_DIVIDE(user_score, NULLIF(actual_score, 0)), 0) > 0.8,
+              user_id,
+              NULL
+            )
+          ) AS avg_pass_count,
           ROUND(AVG(COALESCE(SAFE_DIVIDE(user_score, NULLIF(actual_score, 0)), 0)), 4) AS avg_score,
           '{sql_escape(batch)}' AS batch,
           '{sql_escape(semester)}' AS semester,
@@ -1366,27 +1468,29 @@ def fetch_assessment_data(batch: str, semester: str) -> pd.DataFrame:
 
 def summarize_assessment_subset(assessment_df: pd.DataFrame, assessment_type: str | None = None):
     if assessment_df.empty:
-        return {"score": None, "participation": None}
+        return {"score": None, "participation": None, "pass_count": None}
     scoped_df = assessment_df
     if assessment_type:
         scoped_df = scoped_df[scoped_df["assessment_type"] == assessment_type]
     if scoped_df.empty:
-        return {"score": None, "participation": None}
+        return {"score": None, "participation": None, "pass_count": None}
     return {
         "score": float(scoped_df["avg_score"].mean()),
         "participation": float(scoped_df["avg_participation"].mean()),
+        "pass_count": float(scoped_df["avg_pass_count"].mean()) if "avg_pass_count" in scoped_df.columns else None,
     }
 
 
 def summarize_academic_assessment_subset(assessment_df: pd.DataFrame):
     if assessment_df.empty:
-        return {"score": None, "participation": None}
+        return {"score": None, "participation": None, "pass_count": None}
     scoped_df = assessment_df[assessment_df["assessment_type"] != "Skill Assessment"]
     if scoped_df.empty:
-        return {"score": None, "participation": None}
+        return {"score": None, "participation": None, "pass_count": None}
     return {
         "score": float(scoped_df["avg_score"].mean()),
         "participation": float(scoped_df["avg_participation"].mean()),
+        "pass_count": float(scoped_df["avg_pass_count"].mean()) if "avg_pass_count" in scoped_df.columns else None,
     }
 
 
@@ -1396,10 +1500,13 @@ def calc_univ_assessment(assessment_df: pd.DataFrame, univ_name: str):
         "avgParticipation": None,
         "avgAcademicScore": None,
         "avgAcademicParticipation": None,
+        "avgAcademicPassCount": None,
         "avgSkillScore": None,
         "avgSkillParticipation": None,
+        "avgSkillPassCount": None,
         "avgGradedScore": None,
         "avgGradedParticipation": None,
+        "avgGradedPassCount": None,
     }
     if assessment_df.empty:
         return empty_response
@@ -1421,10 +1528,13 @@ def calc_univ_assessment(assessment_df: pd.DataFrame, univ_name: str):
             "avgParticipation": overall["participation"],
             "avgAcademicScore": academic["score"],
             "avgAcademicParticipation": academic["participation"],
+            "avgAcademicPassCount": academic["pass_count"],
             "avgSkillScore": skill["score"],
             "avgSkillParticipation": skill["participation"],
+            "avgSkillPassCount": skill["pass_count"],
             "avgGradedScore": graded["score"],
             "avgGradedParticipation": graded["participation"],
+            "avgGradedPassCount": graded["pass_count"],
         }
     common_courses = None
     for section in sections:
@@ -1445,10 +1555,13 @@ def calc_univ_assessment(assessment_df: pd.DataFrame, univ_name: str):
                 "participation": overall["participation"],
                 "academic_score": academic["score"],
                 "academic_participation": academic["participation"],
+                "academic_pass_count": academic["pass_count"],
                 "skill_score": skill["score"],
                 "skill_participation": skill["participation"],
+                "skill_pass_count": skill["pass_count"],
                 "graded_score": graded["score"],
                 "graded_participation": graded["participation"],
+                "graded_pass_count": graded["pass_count"],
             }
         )
 
@@ -1461,10 +1574,13 @@ def calc_univ_assessment(assessment_df: pd.DataFrame, univ_name: str):
         "avgParticipation": average_metric("participation"),
         "avgAcademicScore": average_metric("academic_score"),
         "avgAcademicParticipation": average_metric("academic_participation"),
+        "avgAcademicPassCount": average_metric("academic_pass_count"),
         "avgSkillScore": average_metric("skill_score"),
         "avgSkillParticipation": average_metric("skill_participation"),
+        "avgSkillPassCount": average_metric("skill_pass_count"),
         "avgGradedScore": average_metric("graded_score"),
         "avgGradedParticipation": average_metric("graded_participation"),
+        "avgGradedPassCount": average_metric("graded_pass_count"),
     }
 
 
@@ -1497,6 +1613,8 @@ def calculate_series_data(data_df: pd.DataFrame, assessment_df: pd.DataFrame, an
             return {
                 "totalSessions": lecture_sessions + practice_sessions + exam_sessions,
                 "lecturePracticeSessions": lecture_practice_sessions,
+                "scheduledLectureSessions": estimate_scheduled_sessions(lecture_df),
+                "scheduledPracticeSessions": estimate_scheduled_sessions(practice_df),
                 "classSize": float(section_df["students"].max()) if not section_df.empty else 0,
                 "lectureCompletion": float(lecture_df["completion"].mean()) if not lecture_df.empty else 0,
                 "practiceCompletion": float(practice_df["completion"].mean()) if not practice_df.empty else 0,
@@ -1522,6 +1640,8 @@ def calculate_series_data(data_df: pd.DataFrame, assessment_df: pd.DataFrame, an
                 "sectionCount": roster_section_count or len(sections) or 1,
                 "avgSessions": average("totalSessions"),
                 "avgLecturePracticeSessions": average("lecturePracticeSessions"),
+                "avgScheduledLectureSessions": average("scheduledLectureSessions"),
+                "avgScheduledPracticeSessions": average("scheduledPracticeSessions"),
                 "avgClassSize": average("classSize"),
                 "avgLectureCompletion": average("lectureCompletion"),
                 "avgPracticeCompletion": average("practiceCompletion"),
@@ -1537,10 +1657,13 @@ def calculate_series_data(data_df: pd.DataFrame, assessment_df: pd.DataFrame, an
                 "avgParticipation": assessment["avgParticipation"],
                 "avgAcademicScore": assessment["avgAcademicScore"],
                 "avgAcademicParticipation": assessment["avgAcademicParticipation"],
+                "avgAcademicPassCount": assessment["avgAcademicPassCount"],
                 "avgSkillScore": assessment["avgSkillScore"],
                 "avgSkillParticipation": assessment["avgSkillParticipation"],
+                "avgSkillPassCount": assessment["avgSkillPassCount"],
                 "avgGradedScore": assessment["avgGradedScore"],
                 "avgGradedParticipation": assessment["avgGradedParticipation"],
+                "avgGradedPassCount": assessment["avgGradedPassCount"],
             }
         )
 
@@ -1562,10 +1685,13 @@ def calculate_series_data(data_df: pd.DataFrame, assessment_df: pd.DataFrame, an
                 "avgParticipation": None,
                 "avgAcademicScore": None,
                 "avgAcademicParticipation": None,
+                "avgAcademicPassCount": None,
                 "avgSkillScore": None,
                 "avgSkillParticipation": None,
+                "avgSkillPassCount": None,
                 "avgGradedScore": None,
                 "avgGradedParticipation": None,
+                "avgGradedPassCount": None,
                 "avgAllottedHours": 0,
             }
             continue
@@ -1573,10 +1699,13 @@ def calculate_series_data(data_df: pd.DataFrame, assessment_df: pd.DataFrame, an
         with_score = [item for item in universities if item["avgAssessmentScore"] is not None]
         with_academic_score = [item for item in universities if item["avgAcademicScore"] is not None]
         with_academic_participation = [item for item in universities if item["avgAcademicParticipation"] is not None]
+        with_academic_pass_count = [item for item in universities if item["avgAcademicPassCount"] is not None]
         with_skill_score = [item for item in universities if item["avgSkillScore"] is not None]
         with_skill_participation = [item for item in universities if item["avgSkillParticipation"] is not None]
+        with_skill_pass_count = [item for item in universities if item["avgSkillPassCount"] is not None]
         with_graded_score = [item for item in universities if item["avgGradedScore"] is not None]
         with_graded_participation = [item for item in universities if item["avgGradedParticipation"] is not None]
+        with_graded_pass_count = [item for item in universities if item["avgGradedPassCount"] is not None]
         with_hours = [item for item in universities if item["allottedHours"] is not None]
         series_data[series["name"]] = {
             "universities": universities,
@@ -1592,10 +1721,13 @@ def calculate_series_data(data_df: pd.DataFrame, assessment_df: pd.DataFrame, an
             "avgParticipation": sum(item["avgParticipation"] for item in with_score) / len(with_score) if with_score else None,
             "avgAcademicScore": sum(item["avgAcademicScore"] for item in with_academic_score) / len(with_academic_score) if with_academic_score else None,
             "avgAcademicParticipation": sum(item["avgAcademicParticipation"] for item in with_academic_participation) / len(with_academic_participation) if with_academic_participation else None,
+            "avgAcademicPassCount": sum(item["avgAcademicPassCount"] for item in with_academic_pass_count) / len(with_academic_pass_count) if with_academic_pass_count else None,
             "avgSkillScore": sum(item["avgSkillScore"] for item in with_skill_score) / len(with_skill_score) if with_skill_score else None,
             "avgSkillParticipation": sum(item["avgSkillParticipation"] for item in with_skill_participation) / len(with_skill_participation) if with_skill_participation else None,
+            "avgSkillPassCount": sum(item["avgSkillPassCount"] for item in with_skill_pass_count) / len(with_skill_pass_count) if with_skill_pass_count else None,
             "avgGradedScore": sum(item["avgGradedScore"] for item in with_graded_score) / len(with_graded_score) if with_graded_score else None,
             "avgGradedParticipation": sum(item["avgGradedParticipation"] for item in with_graded_participation) / len(with_graded_participation) if with_graded_participation else None,
+            "avgGradedPassCount": sum(item["avgGradedPassCount"] for item in with_graded_pass_count) / len(with_graded_pass_count) if with_graded_pass_count else None,
             "avgAllottedHours": sum(item["allottedHours"] for item in with_hours) / len(with_hours) if with_hours else 0,
         }
     return series_data
@@ -1666,8 +1798,8 @@ def build_university_metrics(data_df: pd.DataFrame, assessment_df: pd.DataFrame,
                 "Participation #": round(overall_assessment_row["participation"], 1) if overall_assessment_row["participation"] is not None else None,
                 "Skill Score %": round(skill_assessment_row["score"] * 100, 1) if skill_assessment_row["score"] is not None else None,
                 "Skill Participation #": round(skill_assessment_row["participation"], 1) if skill_assessment_row["participation"] is not None else None,
-                "Graded Score %": round(graded_assessment_row["score"] * 100, 1) if graded_assessment_row["score"] is not None else None,
-                "Graded Participation #": round(graded_assessment_row["participation"], 1) if graded_assessment_row["participation"] is not None else None,
+                "Academic Assessment Score %": round(graded_assessment_row["score"] * 100, 1) if graded_assessment_row["score"] is not None else None,
+                "Academic Assessment Participation #": round(graded_assessment_row["participation"], 1) if graded_assessment_row["participation"] is not None else None,
             }
         )
 
@@ -2061,7 +2193,7 @@ def main():
             {"label": "Avg Delivery %", "value": format_metric_value(avg_delivery, suffix="%"), "help": "Average university delivery across lecture, practice, and exam completion."},
             {"label": "Avg Score %", "value": format_metric_value(avg_score, suffix="%"), "help": "Average assessment score for universities with assessment data."},
             {"label": "Skill Score %", "value": format_metric_value(avg_skill_score, suffix="%"), "help": "Average skill assessment score for universities with skill assessment data."},
-            {"label": "Graded Score %", "value": format_metric_value(avg_graded_score, suffix="%"), "help": "Average graded assessment score for universities with graded assessment data."},
+            {"label": "Academic Assessment Score %", "value": format_metric_value(avg_graded_score, suffix="%"), "help": "Average academic assessment score for universities with academic assessment data."},
         ]
     )
     if not (analysis_type == "overview" and st.session_state.get("current_view") == "Course Breakdown"):
@@ -2127,8 +2259,8 @@ def main():
                 "Participation #": round(item["avgParticipation"], 1) if item["avgParticipation"] is not None else None,
                 "Skill Score %": round(item["avgSkillScore"] * 100, 1) if item.get("avgSkillScore") is not None else None,
                 "Skill Participation #": round(item["avgSkillParticipation"], 1) if item.get("avgSkillParticipation") is not None else None,
-                "Graded Score %": round(item["avgGradedScore"] * 100, 1) if item.get("avgGradedScore") is not None else None,
-                "Graded Participation #": round(item["avgGradedParticipation"], 1) if item.get("avgGradedParticipation") is not None else None,
+                "Academic Assessment Score %": round(item["avgGradedScore"] * 100, 1) if item.get("avgGradedScore") is not None else None,
+                "Academic Assessment Participation #": round(item["avgGradedParticipation"], 1) if item.get("avgGradedParticipation") is not None else None,
             }
             for item in universities
         ]
@@ -2196,13 +2328,14 @@ def main():
                     "Delivery Mode": st.column_config.TextColumn("Delivery Mode"),
                     "Start Date": st.column_config.TextColumn("Start Date"),
                     "End Date": st.column_config.TextColumn("End Date"),
-                    "Allocated slots": st.column_config.NumberColumn("Allocated slots", format="%.1f"),
                     "Expected slots": st.column_config.NumberColumn("Expected slots", format="%.1f"),
-                    "Slots actually delivered": st.column_config.NumberColumn("Slots actually delivered", format="%.1f"),
-                    "Lecture completion": st.column_config.NumberColumn("Lecture completion", format="%.1f%%"),
-                    "Practice Completion": st.column_config.NumberColumn("Practice Completion", format="%.1f%%"),
-                    "Academic assessments": st.column_config.NumberColumn("Academic assessments", format="%.1f%%"),
-                    "skill assessments": st.column_config.NumberColumn("skill assessments", format="%.1f%%"),
+                    "Expected slots till date": st.column_config.NumberColumn("Expected slots till date", format="%.1f"),
+                    "Actual slots delivered till date": st.column_config.NumberColumn("Actual slots delivered till date", format="%.1f"),
+                    "Deviation": st.column_config.NumberColumn("Deviation", format="%.1f"),
+                    "Session completion %": st.column_config.NumberColumn("Session completion %", format="%.1f%%"),
+                    "Practice completion %": st.column_config.NumberColumn("Practice completion %", format="%.1f%%"),
+                    "Academic assessments pass #": st.column_config.NumberColumn("Academic assessments pass #", format="%.1f"),
+                    "Skill assessments pass #": st.column_config.NumberColumn("Skill assessments pass #", format="%.1f"),
                 },
             )
             selected_rows = []
@@ -2231,7 +2364,7 @@ def main():
                 {"label": "Series Delivery %", "value": format_metric_value(series_summary["avgOverallCompletion"], suffix="%"), "help": "Average delivery across universities in this series."},
                 {"label": "Series Score %", "value": format_metric_value(series_summary["avgAssessmentScore"] * 100 if series_summary["avgAssessmentScore"] is not None else None, suffix="%"), "help": "Average assessment score for universities in this series."},
                 {"label": "Skill Score %", "value": format_metric_value(series_summary["avgSkillScore"] * 100 if series_summary["avgSkillScore"] is not None else None, suffix="%"), "help": "Average skill assessment score for universities in this series."},
-                {"label": "Graded Score %", "value": format_metric_value(series_summary["avgGradedScore"] * 100 if series_summary["avgGradedScore"] is not None else None, suffix="%"), "help": "Average graded assessment score for universities in this series."},
+                {"label": "Academic Assessment Score %", "value": format_metric_value(series_summary["avgGradedScore"] * 100 if series_summary["avgGradedScore"] is not None else None, suffix="%"), "help": "Average academic assessment score for universities in this series."},
             ]
         )
         render_metric_row(series_metrics)
@@ -2247,7 +2380,7 @@ def main():
                 "Avg Delivery %": st.column_config.NumberColumn("Avg Delivery %", format="%.1f%%"),
                 "Avg Score %": st.column_config.NumberColumn("Avg Score %", format="%.1f%%"),
                 "Skill Score %": st.column_config.NumberColumn("Skill Score %", format="%.1f%%"),
-                "Graded Score %": st.column_config.NumberColumn("Graded Score %", format="%.1f%%"),
+                "Academic Assessment Score %": st.column_config.NumberColumn("Academic Assessment Score %", format="%.1f%%"),
                 "Avg Allotted Hours": st.column_config.NumberColumn("Avg Allotted Hours", format="%.1f"),
             },
         )
@@ -2271,8 +2404,8 @@ def main():
                 "Participation #": st.column_config.NumberColumn("Participation #", format="%.1f"),
                 "Skill Score %": st.column_config.NumberColumn("Skill Score %", format="%.1f%%"),
                 "Skill Participation #": st.column_config.NumberColumn("Skill Participation #", format="%.1f"),
-                "Graded Score %": st.column_config.NumberColumn("Graded Score %", format="%.1f%%"),
-                "Graded Participation #": st.column_config.NumberColumn("Graded Participation #", format="%.1f"),
+                "Academic Assessment Score %": st.column_config.NumberColumn("Academic Assessment Score %", format="%.1f%%"),
+                "Academic Assessment Participation #": st.column_config.NumberColumn("Academic Assessment Participation #", format="%.1f"),
             },
         )
 
@@ -2379,8 +2512,8 @@ def main():
             [
                 {"label": "Skill Score %", "value": format_metric_value(university_metrics["skillAssessmentScore"], suffix="%"), "help": "Average skill assessment score percentage for the mapped courses."},
                 {"label": "Skill Participation #", "value": format_metric_value(university_metrics["skillAssessmentParticipation"], decimals=1), "help": "Average count of students who attempted mapped skill assessments."},
-                {"label": "Graded Score %", "value": format_metric_value(university_metrics["gradedAssessmentScore"], suffix="%"), "help": "Average graded assessment score percentage for the mapped courses."},
-                {"label": "Graded Participation #", "value": format_metric_value(university_metrics["gradedAssessmentParticipation"], decimals=1), "help": "Average count of students who attempted mapped graded assessments."},
+                {"label": "Academic Assessment Score %", "value": format_metric_value(university_metrics["gradedAssessmentScore"], suffix="%"), "help": "Average academic assessment score percentage for the mapped courses."},
+                {"label": "Academic Assessment Participation #", "value": format_metric_value(university_metrics["gradedAssessmentParticipation"], decimals=1), "help": "Average count of students who attempted mapped academic assessments."},
             ]
         )
         with st.expander("Metric definitions"):
@@ -2391,7 +2524,7 @@ def main():
                 - `Score %`: average assessment score percentage.
                 - `Participation #`: average number of learners who attempted the mapped assessments.
                 - `Skill Score %` / `Skill Participation #`: visible score and attempts for mapped skill assessments.
-                - `Graded Score %` / `Graded Participation #`: visible score and attempts for mapped graded assessments.
+                - `Academic Assessment Score %` / `Academic Assessment Participation #`: visible score and attempts for mapped academic assessments.
                 """
             )
         st.dataframe(
@@ -2411,8 +2544,8 @@ def main():
                 "Participation #": st.column_config.NumberColumn("Participation #", format="%.1f"),
                 "Skill Score %": st.column_config.NumberColumn("Skill Score %", format="%.1f%%"),
                 "Skill Participation #": st.column_config.NumberColumn("Skill Participation #", format="%.1f"),
-                "Graded Score %": st.column_config.NumberColumn("Graded Score %", format="%.1f%%"),
-                "Graded Participation #": st.column_config.NumberColumn("Graded Participation #", format="%.1f"),
+                "Academic Assessment Score %": st.column_config.NumberColumn("Academic Assessment Score %", format="%.1f%%"),
+                "Academic Assessment Participation #": st.column_config.NumberColumn("Academic Assessment Participation #", format="%.1f"),
             },
         )
 
