@@ -1,3 +1,4 @@
+import html
 import json
 import os
 import re
@@ -1886,7 +1887,18 @@ def inject_custom_css():
             .block-container {
                 max-width: 1320px;
                 padding-top: 1.4rem;
+                padding-left: 2rem;
+                padding-right: 2rem;
                 padding-bottom: 2.5rem;
+            }
+            * {
+                box-sizing: border-box;
+            }
+            div[data-testid="column"] {
+                min-width: 0;
+            }
+            div[data-testid="column"] > div {
+                width: 100%;
             }
             [data-testid="stHeader"] {
                 background: rgba(248, 250, 252, 0.9);
@@ -1922,6 +1934,14 @@ def inject_custom_css():
                 min-height: 48px;
                 box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
             }
+            [data-testid="stButton"] button {
+                min-height: 44px;
+                white-space: normal;
+                line-height: 1.2;
+            }
+            [data-testid="stButton"] button p {
+                line-height: 1.2;
+            }
             .stSelectbox label p,
             .stRadio label p {
                 font-weight: 600;
@@ -1932,7 +1952,8 @@ def inject_custom_css():
                 color: white;
                 padding: 28px 30px;
                 box-shadow: 0 20px 45px rgba(15, 23, 42, 0.18);
-                margin-bottom: 12px;
+                margin-bottom: 18px;
+                width: 100%;
             }
             .hero-eyebrow {
                 font-size: 0.8rem;
@@ -1957,6 +1978,7 @@ def inject_custom_css():
             .hero-meta {
                 display: flex;
                 flex-wrap: wrap;
+                align-items: center;
                 gap: 10px;
                 margin-top: 18px;
             }
@@ -1967,17 +1989,24 @@ def inject_custom_css():
                 padding: 8px 12px;
                 font-size: 0.85rem;
                 font-weight: 600;
+                max-width: 100%;
+                overflow-wrap: anywhere;
             }
             .section-heading {
-                margin: 0 0 2px 0;
+                margin: 6px 0 2px 0;
                 font-size: 1.2rem;
                 font-weight: 700;
                 color: #0f172a;
+                overflow-wrap: anywhere;
             }
             .section-caption {
                 color: #475569;
                 margin-bottom: 12px;
                 font-size: 0.94rem;
+                overflow-wrap: anywhere;
+            }
+            .metric-row-gap {
+                height: 0.75rem;
             }
             .metric-card {
                 background: rgba(255, 255, 255, 0.92);
@@ -1985,25 +2014,34 @@ def inject_custom_css():
                 border-radius: 20px;
                 padding: 18px 18px 16px 18px;
                 box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
-                min-height: 118px;
+                min-height: 132px;
+                height: 100%;
+                display: flex;
+                flex-direction: column;
             }
             .metric-label {
                 color: #475569;
                 font-size: 0.86rem;
                 font-weight: 600;
                 margin-bottom: 10px;
+                min-height: 2.35em;
+                line-height: 1.25;
+                overflow-wrap: anywhere;
             }
             .metric-value {
                 color: #0f172a;
-                font-size: 1.8rem;
+                font-size: 1.55rem;
                 font-weight: 700;
                 line-height: 1.1;
                 margin-bottom: 8px;
+                overflow-wrap: anywhere;
             }
             .metric-help {
                 color: #64748b;
                 font-size: 0.8rem;
                 line-height: 1.5;
+                margin-top: auto;
+                overflow-wrap: anywhere;
             }
             .info-card {
                 background: rgba(255, 255, 255, 0.88);
@@ -2012,6 +2050,7 @@ def inject_custom_css():
                 padding: 14px 16px;
                 color: #334155;
                 margin-bottom: 12px;
+                overflow-wrap: anywhere;
             }
             div[data-testid="stDataFrame"] {
                 border: 1px solid rgba(148, 163, 184, 0.24);
@@ -2040,31 +2079,71 @@ def inject_custom_css():
             div[data-testid="stTabs"] [data-baseweb="tab-highlight"] {
                 display: none;
             }
+            @media (max-width: 900px) {
+                .block-container {
+                    padding-left: 1rem;
+                    padding-right: 1rem;
+                }
+                .hero-card {
+                    padding: 22px 20px;
+                    border-radius: 20px;
+                }
+                .hero-title {
+                    font-size: 1.55rem;
+                }
+                .metric-card {
+                    min-height: auto;
+                }
+                .metric-label {
+                    min-height: 0;
+                }
+            }
         </style>
         """,
         unsafe_allow_html=True,
     )
 
 
+def escape_html(value) -> str:
+    return html.escape(str(value), quote=True)
+
+
 def render_section_header(title: str, caption: str):
-    st.markdown(f"<div class='section-heading'>{title}</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='section-caption'>{caption}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='section-heading'>{escape_html(title)}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='section-caption'>{escape_html(caption)}</div>", unsafe_allow_html=True)
+
+
+def chunk_metric_items(items: list[dict], max_columns: int = 4) -> list[list[dict]]:
+    remaining = list(items)
+    rows = []
+    while remaining:
+        if len(remaining) <= max_columns:
+            rows.append(remaining)
+            break
+        row_size = 3 if len(remaining) in (5, 6) else max_columns
+        rows.append(remaining[:row_size])
+        remaining = remaining[row_size:]
+    return rows
 
 
 def render_metric_row(items):
-    columns = st.columns(len(items))
-    for column, item in zip(columns, items):
-        help_text = f"<div class='metric-help'>{item.get('help', '')}</div>" if item.get("help") else ""
-        column.markdown(
-            f"""
-            <div class="metric-card">
-                <div class="metric-label">{item['label']}</div>
-                <div class="metric-value">{item['value']}</div>
-                {help_text}
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+    metric_rows = chunk_metric_items(items)
+    for row_index, row_items in enumerate(metric_rows):
+        columns = st.columns(len(row_items), gap="medium")
+        for column, item in zip(columns, row_items):
+            help_text = f"<div class='metric-help'>{escape_html(item.get('help', ''))}</div>" if item.get("help") else ""
+            column.markdown(
+                f"""
+                <div class="metric-card">
+                    <div class="metric-label">{escape_html(item['label'])}</div>
+                    <div class="metric-value">{escape_html(item['value'])}</div>
+                    {help_text}
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        if row_index < len(metric_rows) - 1:
+            st.markdown("<div class='metric-row-gap'></div>", unsafe_allow_html=True)
 
 
 def main():
@@ -2164,10 +2243,10 @@ def main():
             <h1 class="hero-title">NIAT delivery and assessment view</h1>
             <div class="hero-subtitle">Cleaned Streamlit layout focused on series performance, university delivery, and course-level completion. Course tables hide non-core subjects where applicable so the breakdown stays readable.</div>
             <div class="hero-meta">
-                <div class="hero-pill">Batch: {batch}</div>
-                <div class="hero-pill">Semester: {semester}</div>
-                <div class="hero-pill">Grouping: {analysis_label}</div>
-                <div class="hero-pill">Last updated: {last_updated}</div>
+                <div class="hero-pill">Batch: {escape_html(batch)}</div>
+                <div class="hero-pill">Semester: {escape_html(semester)}</div>
+                <div class="hero-pill">Grouping: {escape_html(analysis_label)}</div>
+                <div class="hero-pill">Last updated: {escape_html(last_updated)}</div>
             </div>
         </div>
         """,
@@ -2228,7 +2307,7 @@ def main():
         render_section_header("Focus selection", "Choose the series, university, and section scope before reviewing the tables below.")
         if st.session_state.get("selected_series") not in active_series:
             st.session_state["selected_series"] = active_series[0]
-        filter_col_1, filter_col_2, filter_col_3 = st.columns([1, 1.35, 1])
+        filter_col_1, filter_col_2, filter_col_3 = st.columns([1, 1.35, 1], gap="medium", vertical_alignment="bottom")
         with filter_col_1:
             selected_series = st.selectbox("Series", active_series, key="selected_series")
         series_summary = series_data[selected_series]
@@ -2308,7 +2387,7 @@ def main():
         if st.session_state.get("overview_delivery_mode") not in delivery_mode_options:
             st.session_state["overview_delivery_mode"] = "All"
         filter_labels = ["All", "Full", "Co", "Hybrid"]
-        filter_columns = st.columns(len(filter_labels))
+        filter_columns = st.columns(len(filter_labels), gap="small")
         selected_delivery_mode = st.session_state.get("overview_delivery_mode", "All")
         for column, label in zip(filter_columns, filter_labels):
             disabled = label not in delivery_mode_options
@@ -2425,7 +2504,7 @@ def main():
         delivery_mode_options = ["All delivery modes"] + sorted([value for value in timeline_df["Delivery Mode"].dropna().unique().tolist() if value and value != "--"])
         if st.session_state.get("timeline_delivery_mode") not in delivery_mode_options:
             st.session_state["timeline_delivery_mode"] = "All delivery modes"
-        timeline_filter_col_1, timeline_filter_col_2 = st.columns([1, 1.2])
+        timeline_filter_col_1, timeline_filter_col_2, timeline_action_col = st.columns([1, 1.25, 1.05], gap="medium", vertical_alignment="bottom")
         with timeline_filter_col_1:
             selected_delivery_mode = st.selectbox("Delivery mode filter", delivery_mode_options, key="timeline_delivery_mode")
         filtered_timeline_df = timeline_df.copy()
@@ -2437,11 +2516,12 @@ def main():
                 st.session_state["timeline_selected_university"] = timeline_university_options[0]
             with timeline_filter_col_2:
                 timeline_selected_university = st.selectbox("Timeline university", timeline_university_options, key="timeline_selected_university")
-            st.button(
-                "Open selected university in Course Breakdown",
-                use_container_width=True,
-                on_click=open_course_breakdown_from_timeline,
-            )
+            with timeline_action_col:
+                st.button(
+                    "Open Course Breakdown",
+                    use_container_width=True,
+                    on_click=open_course_breakdown_from_timeline,
+                )
         else:
             with timeline_filter_col_2:
                 st.caption("No universities match the selected delivery mode.")
@@ -2466,7 +2546,7 @@ def main():
 
     elif current_view == "Course Breakdown":
         if analysis_type == "overview":
-            nav_col_1, nav_col_2, nav_col_3 = st.columns([0.18, 1.1, 1.1])
+            nav_col_1, nav_col_2, nav_col_3 = st.columns([0.34, 1.35, 1.1], gap="medium", vertical_alignment="bottom")
             with nav_col_1:
                 if st.button("←", key="overview_back_arrow", use_container_width=True):
                     queue_overview_navigation()
@@ -2489,12 +2569,12 @@ def main():
         render_section_header(f"{selected_university} - {scope_label}", "Detailed course view for the selected university and section scope.")
         if dates:
             st.markdown(
-                f"<div class='info-card'><strong>Semester window:</strong> {dates['start']} to {dates['end']}</div>",
+                f"<div class='info-card'><strong>Semester window:</strong> {escape_html(dates['start'])} to {escape_html(dates['end'])}</div>",
                 unsafe_allow_html=True,
             )
         if hidden_courses:
             st.markdown(
-                f"<div class='info-card'><strong>Course cleanup applied:</strong> showing {len(course_table)} focus courses and hiding {hidden_courses} support courses to keep the breakdown readable.</div>",
+                f"<div class='info-card'><strong>Course cleanup applied:</strong> showing {escape_html(len(course_table))} focus courses and hiding {escape_html(hidden_courses)} support courses to keep the breakdown readable.</div>",
                 unsafe_allow_html=True,
             )
         selected_university_meta = next((item for item in universities if item["name"] == selected_university), None)
